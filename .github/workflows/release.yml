@@ -71,7 +71,7 @@ jobs:
 
       - name: Build Web Frontend Assets
         run: |
-          bun --cwd apps/web run build
+          cd apps/web && bun run build
 
       - name: Build Web Assets & Tauri App
         uses: tauri-apps/tauri-action@v0
