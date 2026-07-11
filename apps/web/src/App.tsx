@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { check as checkTauriUpdate } from '@tauri-apps/plugin-updater';
 import { 
   ReactFlow, 
   Background, 
@@ -434,6 +435,29 @@ function Editor() {
         // ignore malformed history
       }
     }
+
+    // Auto-updater check if running inside Tauri desktop wrapper
+    const checkUpdates = async () => {
+      const isTauri = typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__;
+      if (!isTauri) return;
+
+      try {
+        const update = await checkTauriUpdate();
+        if (update) {
+          const confirmUpdate = window.confirm(
+            `A new version (${update.version}) of AutoMeta is available! Would you like to download and install it now?\n\nRelease Notes:\n${update.body || 'No release notes provided.'}`
+          );
+          if (confirmUpdate) {
+            await update.downloadAndInstall();
+            alert('Update downloaded successfully! Please restart the application to apply the changes.');
+          }
+        }
+      } catch (err) {
+        console.error('Failed to check for updates:', err);
+      }
+    };
+
+    checkUpdates();
   }, []);
 
   const saveLessonToHistory = (lesson: Omit<SavedLesson, 'id' | 'savedAt'>) => {

@@ -16,6 +16,8 @@
     "@autometa/simulation-engine": "workspace:*",
     "@autometa/timeline-engine": "workspace:*",
     "@autometa/ui": "workspace:*",
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-updater": "^2.10.1",
     "@xyflow/react": "^12.3.12",
     "framer-motion": "^11.11.0",
     "gifenc": "^1.0.3",
