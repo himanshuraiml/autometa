@@ -103,6 +103,15 @@ We welcome contributions from educators, students, and compiler engineers! To co
 3. **Commit** your changes with meaningful commit messages.
 4. **Push** to the branch and open a **Pull Request**.
 
+## 🍏 macOS Gatekeeper ("App is damaged") Bypass
+Since this release is compiled on GitHub Actions without a $99/year Apple Developer certificate, macOS assigns a quarantine attribute to the downloaded app, displaying a deceptive warning: *"Autometa is damaged and can't be opened."*
+
+To run the application, strip the quarantine flag by running the following command in your terminal:
+```bash
+xattr -cr /Applications/Autometa.app
+```
+*(If you are running the app directly from your Downloads folder, run `xattr -cr ~/Downloads/Autometa.app` instead).*
+
 ---
 
 ## 📄 License
