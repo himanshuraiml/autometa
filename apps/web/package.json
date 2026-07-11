@@ -1,0 +1,40 @@
+{
+  "name": "web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@autometa/animation-engine": "workspace:*",
+    "@autometa/graph-engine": "workspace:*",
+    "@autometa/rule-engine": "workspace:*",
+    "@autometa/simulation-engine": "workspace:*",
+    "@autometa/timeline-engine": "workspace:*",
+    "@autometa/ui": "workspace:*",
+    "@xyflow/react": "^12.3.12",
+    "framer-motion": "^11.11.0",
+    "gifenc": "^1.0.3",
+    "html-to-image": "^1.11.13",
+    "lucide-react": "^0.454.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "oxlint": "^1.71.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.1",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17"
+  }
+}

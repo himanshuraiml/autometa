@@ -1,0 +1,10 @@
+{
+  "name": "@autometa/animation-engine",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@autometa/timeline-engine": "workspace:*"
+  }
+}
