@@ -1,0 +1,83 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'
+            args: '--target aarch64-apple-darwin'
+            target: 'aarch64-apple-darwin'
+          - platform: 'windows-latest'
+            args: ''
+            target: 'x86_64-pc-windows-msvc'
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install Python dependencies & PyInstaller
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller -r services/backend/requirements.txt
+
+      - name: Compile Python sidecar
+        run: |
+          pyinstaller --onefile --clean --name autometa-backend services/backend/main.py
+
+      - name: Move Python sidecar to Tauri binaries folder
+        shell: bash
+        run: |
+          mkdir -p apps/desktop/src-tauri/binaries
+          if [ "${{ matrix.platform }}" = "windows-latest" ]; then
+            cp dist/autometa-backend.exe apps/desktop/src-tauri/binaries/autometa-backend-x86_64-pc-windows-msvc.exe
+          elif [ "${{ matrix.platform }}" = "macos-latest" ]; then
+            cp dist/autometa-backend apps/desktop/src-tauri/binaries/autometa-backend-aarch64-apple-darwin
+          fi
+
+      - name: Install Monorepo Web Dependencies
+        run: |
+          bun install
+
+      - name: Build Web Assets & Tauri App
+        uses: tauri-apps/tauri-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'AUTOMETA v__VERSION__'
+          releaseBody: 'First release of AUTOMETA Simulation Studio containing educational editor and Python sidecar backend.'
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
+          projectPath: 'apps/desktop'
