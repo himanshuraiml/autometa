@@ -8,33 +8,7 @@ AUTOMETA is a premium, dark-themed educational workspace and IDE designed for st
 
 Below is the layout of the **AUTOMETA Studio Dashboard**, showcasing the project management canvas, the learning resources, and the AI Tutor timeline panel:
 
-```text
-+-------------------------------------------------------------------------------+
-|  AUTOMETA  [Studio Dashboard]                        [Search]   [Export]  [?] |
-|  AI Studio • Neo Aurora                                                       |
-+-------------------------------------------------------------------------------+
-|  (Home)     |                                                                 |
-|  Editor     |  Welcome back, Professor.                                       |
-|  Grammars   |  READY TO PUSH THE BOUNDARIES OF LOGIC?                         |
-|  Lessons    |                                                                 |
-|  Settings   |  CONTINUE EDITING                                               |
-|             |  +-------------------------------------------+                  |
-|             |  | DFA: Binary Parity Check                  |                  |
-|             |  |                                           |                  |
-|             |  |         /-- 1 --\                         |                  |
-|             |  |        v         |                        |                  |
-|             |  |      ( S0 ) --- 0 ---> ( S1 )             |                  |
-|             |  |      Even P.           Odd P.             |                  |
-|             |  |        ^                 |                |                  |
-|             |  |         \------- 0 ------/                |                  |
-|             |  |                                           |                  |
-|             |  +-------------------------------------------+                  |
-|             |  [ Open Editor ]                                                |
-|             |                                                                 |
-|  [+ New]    |  RECENT PROJECTS                                                |
-|             |  [ balanced p.] [ Email Val. ] [ Binary Inverter ]              |
-+-------------+-----------------------------------------------------------------+
-```
+![AUTOMETA Studio Dashboard](docs/images/dashboard_preview.png)
 
 ---
 
