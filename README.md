@@ -112,6 +112,14 @@ xattr -cr /Applications/Autometa.app
 ```
 *(If you are running the app directly from your Downloads folder, run `xattr -cr ~/Downloads/Autometa.app` instead).*
 
+## 🪟 Windows SmartScreen ("Unrecognized App") Bypass
+Since this installer is compiled on GitHub Actions without a Windows Code Signing certificate, Windows Defender SmartScreen will block the installation and display a warning stating that it is an unrecognized app.
+
+To install normally:
+1. Double-click the installer (`.msi` or `.exe`).
+2. On the blue SmartScreen warning window, click the **"More info"** link.
+3. Click the **"Run anyway"** button that appears at the bottom.
+
 ---
 
 ## 📄 License
