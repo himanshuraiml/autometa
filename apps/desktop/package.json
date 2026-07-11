@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tauri dev",
     "build": "tauri build",
+    "tauri": "tauri",
     "build:backend": "../../services/backend/venv/bin/pyinstaller --onefile --clean --name autometa-backend ../../services/backend/main.py"
   },
   "dependencies": {
