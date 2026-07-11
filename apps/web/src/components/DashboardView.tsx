@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlayCircle, Search, Bell, ExternalLink, BookOpen, Sparkles } from 'lucide-react';
+import { PlayCircle, Search, Bell, BookOpen, Sparkles } from 'lucide-react';
 import { Button } from '@autometa/ui';
 import { formatRelativeTime, type SavedLesson } from '../utils/lessonHistory';
 
@@ -9,6 +9,7 @@ interface DashboardViewProps {
   recentProjects: any[];
   continueProject: any;
   onSelectProject: (proj: any) => void;
+  onViewHistory: () => void;
   lessonHistory: SavedLesson[];
   onSelectLesson: (lesson: SavedLesson) => void;
 }
@@ -34,6 +35,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   recentProjects,
   continueProject,
   onSelectProject,
+  onViewHistory,
   lessonHistory,
   onSelectLesson
 }) => {
@@ -53,9 +55,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               placeholder="Search projects..." 
               type="text"
             />
-          </div>
-          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ff007f] flex items-center justify-center font-bold text-xs text-black shadow-glow-blue/10 cursor-pointer">
-            RK
           </div>
           <button className="p-2 text-gray-400 hover:text-white cursor-pointer transition-colors bg-transparent border-none">
             <Bell className="w-4 h-4" />
@@ -91,9 +90,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <section className="shrink-0">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-extrabold text-white uppercase tracking-wider">Continue Editing</h3>
-                <span className="text-xs font-bold text-[#3b82f6] flex items-center gap-1 hover:underline cursor-pointer">
+                <button
+                  onClick={onViewHistory}
+                  className="text-xs font-bold text-[#3b82f6] flex items-center gap-1 hover:underline cursor-pointer bg-transparent border-none"
+                >
                   View History →
-                </span>
+                </button>
               </div>
               <div className="bg-[#18253F]/40 border border-white/10 rounded-2xl p-5 flex flex-col lg:flex-row gap-6 group cursor-pointer transition-all hover:border-[#3b82f6]/40">
                 <div className="relative w-full lg:w-1/2 aspect-video rounded-xl overflow-hidden bg-black/40 border border-white/5">
@@ -143,7 +145,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <h3 className="text-sm font-extrabold text-white uppercase tracking-wider">Recent Projects</h3>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
               {recentProjects.map((proj) => (
                 <div 
                   key={proj.id}
@@ -182,7 +184,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                 {lessonHistory.map((lesson) => (
                   <div
                     key={lesson.id}
@@ -207,20 +209,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           {/* Quick Start Templates Row */}
           <section className="mb-4">
-            <h3 className="text-sm font-extrabold text-white mb-4 uppercase tracking-wider">Quick Start Templates</h3>
+            <h3 className="text-sm font-extrabold text-white mb-4 uppercase tracking-wider">Quick Start</h3>
             <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">
               {[
-                { title: "Regex to NFA", desc: "Thompson's Construction", color: "text-blue-400", bg: "bg-blue-500/10" },
-                { title: "Pumping Lemma", desc: "Interactive Bounds Checker", color: "text-purple-400", bg: "bg-purple-500/10" },
-                { title: "DFA Minimizer", desc: "Myhill-Nerode Algorithm", color: "text-green-400", bg: "bg-green-500/10" }
+                { title: "Regex to NFA", desc: "Thompson's Construction", color: "text-blue-400", bg: "bg-blue-500/10", icon: <span className="font-black text-sm">★</span>, onClick: onNewSimulation },
+                { title: "Pumping Lemma", desc: "Interactive Bounds Checker", color: "text-purple-400", bg: "bg-purple-500/10", icon: <span className="font-black text-sm">★</span>, onClick: onNewSimulation },
+                { title: "DFA Minimizer", desc: "Myhill-Nerode Algorithm", color: "text-green-400", bg: "bg-green-500/10", icon: <span className="font-black text-sm">★</span>, onClick: onNewSimulation },
+                { title: "Automata Theory Basics", desc: "Open Lesson Builder", color: "text-[#00f0ff]", bg: "bg-[#00f0ff]/10", icon: <BookOpen className="w-4 h-4" />, onClick: () => onNavigate('lessons') }
               ].map((tmpl, idx) => (
-                <button 
+                <button
                   key={idx}
-                  onClick={onNewSimulation}
+                  onClick={tmpl.onClick}
                   className="flex-shrink-0 flex items-center gap-4 bg-[#18253F]/30 border border-white/10 px-5 py-4 rounded-xl hover:bg-white/5 transition-all cursor-pointer text-left"
                 >
-                  <div className={`w-10 h-10 rounded-lg ${tmpl.bg} flex items-center justify-center ${tmpl.color} font-black text-sm`}>
-                    ★
+                  <div className={`w-10 h-10 rounded-lg ${tmpl.bg} flex items-center justify-center ${tmpl.color}`}>
+                    {tmpl.icon}
                   </div>
                   <div>
                     <p className="text-xs font-bold text-white">{tmpl.title}</p>
@@ -230,61 +233,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               ))}
             </div>
           </section>
-        </div>
-
-        {/* Right Side: Activity Timeline & Resources panels */}
-        <div className="w-[320px] border-l border-white/10 p-6 flex flex-col gap-8 overflow-y-auto shrink-0 bg-[#0A1024]/40">
-          {/* Activity Timeline */}
-          <div>
-            <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Activity Timeline</h3>
-            <div className="flex flex-col gap-5 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-white/10">
-              
-              {/* Event 1 */}
-              <div className="flex gap-4 relative">
-                <div className="w-6 h-6 rounded-full bg-[#00f0ff]/10 border border-[#00f0ff]/30 flex items-center justify-center z-10 shrink-0 mt-0.5">
-                  <div className="w-2 h-2 rounded-full bg-[#00f0ff]" />
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[9px] font-black text-[#00f0ff] uppercase tracking-wider">Simulation Success • 10m ago</span>
-                  <p className="text-xs text-gray-300">Lexer DFA passed all 42 unit tests.</p>
-                </div>
-              </div>
-
-              {/* Interactive AI Callout Box */}
-              <div className="ml-10 p-4 rounded-xl bg-gradient-to-r from-[#22D3EE]/20 to-[#8B5CF6]/20 border border-[#22D3EE]/30 shadow-glow-blue/5">
-                <p className="text-xs text-white font-medium flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 bg-[#22D3EE] rounded-full animate-ping" />
-                  <span>AI: "Your state machine is perfectly minimal."</span>
-                </p>
-              </div>
-
-              {/* Event 2 */}
-              <div className="flex gap-4 relative">
-                <div className="w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center z-10 shrink-0 mt-0.5">
-                  <div className="w-2 h-2 rounded-full bg-gray-500" />
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[9px] font-black text-gray-500 uppercase tracking-wider">New Project • 2h ago</span>
-                  <p className="text-xs text-gray-300">Started 'Turing Tape Machine' experiment.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Resources Card Section */}
-          <div className="mt-auto">
-            <h3 className="text-sm font-bold text-white mb-3 uppercase tracking-wider">Resources</h3>
-            <button 
-              onClick={() => onNavigate('lessons')}
-              className="w-full flex items-center justify-between p-4 bg-[#18253F]/40 border border-white/10 hover:border-[#00f0ff]/30 rounded-xl transition-all cursor-pointer text-left text-xs font-bold text-white hover:bg-white/5"
-            >
-              <div className="flex items-center gap-2.5">
-                <BookOpen className="w-4 h-4 text-[#00f0ff]" />
-                <span>Automata Theory Basics</span>
-              </div>
-              <ExternalLink className="w-3.5 h-3.5 text-gray-500" />
-            </button>
-          </div>
         </div>
       </div>
     </div>

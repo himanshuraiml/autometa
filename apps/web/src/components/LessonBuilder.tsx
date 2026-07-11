@@ -7,6 +7,7 @@ import { Button } from '@autometa/ui';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { downloadFile } from '../utils/exportUtils';
 import { formatRelativeTime, type SavedLesson } from '../utils/lessonHistory';
+import { getLLMConfig } from '../utils/llmConfig';
 
 export type AutomatonEngineType = 'DFA' | 'NFA' | 'Mealy' | 'Moore' | 'PDA' | 'TM';
 
@@ -281,11 +282,7 @@ export const LessonBuilder = ({ onLoadDiagram, history = [], onSaveLesson, lesso
     setIsGenerating(true);
     setGenerationError(null);
     try {
-      const provider = localStorage.getItem('autometa_api_provider') || 'Ollama';
-      let apiKey = '';
-      if (provider === 'Gemini') apiKey = localStorage.getItem('autometa_gemini_key') || '';
-      else if (provider === 'OpenAI') apiKey = localStorage.getItem('autometa_openai_key') || '';
-      else if (provider === 'Groq') apiKey = localStorage.getItem('autometa_groq_key') || '';
+      const llmConfig = getLLMConfig();
 
       const response = await fetch("http://localhost:8000/api/tutor/lesson", {
         method: "POST",
@@ -298,8 +295,10 @@ export const LessonBuilder = ({ onLoadDiagram, history = [], onSaveLesson, lesso
           teaching_style: opts.teachingStyle,
           include_quizzes: opts.includeQuizzes,
           generate_narration: opts.generateNarration,
-          provider,
-          api_key: apiKey
+          provider: llmConfig.provider,
+          api_key: llmConfig.api_key,
+          model: llmConfig.model,
+          base_url: llmConfig.base_url
         })
       });
 

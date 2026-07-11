@@ -28,8 +28,9 @@ import { TapeVisualizer } from './components/TapeVisualizer';
 import { GrammarEditor } from './components/GrammarEditor';
 import { LessonBuilder } from './components/LessonBuilder';
 import { DashboardView } from './components/DashboardView';
-import { PluginManager } from './components/PluginManager';
+import { SettingsModal, type SettingsTab } from './components/SettingsModal';
 import { LESSON_HISTORY_KEY, LESSON_HISTORY_LIMIT, type SavedLesson } from './utils/lessonHistory';
+import { getLLMConfig } from './utils/llmConfig';
 import { PREDEFINED_TEMPLATES } from './data/templates';
 import {
   exportToSVG, exportToPNG, exportToHTML, exportToPDF,
@@ -403,14 +404,10 @@ function Editor() {
   const [activeView, setActiveView] = useState<'dashboard' | 'graph' | 'grammars' | 'lessons'>('dashboard');
   const [isPresentationMode, setIsPresentationMode] = useState(false);
   const [selectedExampleIndex, setSelectedExampleIndex] = useState<string>("");
-  const [isPluginsOpen, setIsPluginsOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [apiProvider, setApiProvider] = useState<'Ollama' | 'Gemini' | 'OpenAI' | 'Groq'>('Ollama');
-  const [geminiKey, setGeminiKey] = useState('');
-  const [openaiKey, setOpenaiKey] = useState('');
-  const [groqKey, setGroqKey] = useState('');
+  const [settingsInitialTab, setSettingsInitialTab] = useState<SettingsTab>('ai');
 
   const [activeTransformation, setActiveTransformation] = useState<'nfaToDfa' | 'minimize' | null>(null);
   const [transformStepIndex, setTransformStepIndex] = useState(0);
@@ -925,13 +922,18 @@ function Editor() {
     };
 
     try {
+      const llmConfig = getLLMConfig();
       const response = await fetch('http://localhost:8000/api/tutor/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: textToSend,
           mode: tutorMode,
-          context: automatonContext
+          context: automatonContext,
+          provider: llmConfig.provider,
+          api_key: llmConfig.api_key,
+          model: llmConfig.model,
+          base_url: llmConfig.base_url
         })
       });
 
@@ -1023,9 +1025,11 @@ function Editor() {
     try {
       const parsedNodes = JSON.parse(proj.nodes_json);
       const parsedEdges = JSON.parse(proj.edges_json);
+      stopSimulation();
       loadGraph(parsedNodes, parsedEdges, proj.node_counter);
       setAutomatonType(proj.automaton_type);
       setIsProjectsListOpen(false);
+      setActiveView('graph');
     } catch (err) {
       alert("Failed to load project details.");
     }
@@ -1066,15 +1070,6 @@ function Editor() {
     }));
 
     loadGraph(reactFlowNodes, reactFlowEdges, automaton.nodes.length + 1);
-  };
-
-  const saveSettings = () => {
-    localStorage.setItem('autometa_api_provider', apiProvider);
-    localStorage.setItem('autometa_gemini_key', geminiKey);
-    localStorage.setItem('autometa_openai_key', openaiKey);
-    localStorage.setItem('autometa_groq_key', groqKey);
-    setIsSettingsOpen(false);
-    alert("AI settings saved successfully!");
   };
 
   useEffect(() => {
@@ -1127,11 +1122,7 @@ function Editor() {
     setIsGradingLoading(true);
     setGradingResult(null);
     try {
-      const provider = localStorage.getItem('autometa_api_provider') || 'Ollama';
-      let apiKey = '';
-      if (provider === 'Gemini') apiKey = localStorage.getItem('autometa_gemini_key') || '';
-      else if (provider === 'OpenAI') apiKey = localStorage.getItem('autometa_openai_key') || '';
-      else if (provider === 'Groq') apiKey = localStorage.getItem('autometa_groq_key') || '';
+      const llmConfig = getLLMConfig();
 
       const response = await fetch('http://localhost:8000/api/tutor/grade', {
         method: 'POST',
@@ -1141,8 +1132,10 @@ function Editor() {
           automaton_type: automatonType,
           nodes: nodes.map(n => ({ id: n.id, label: n.data?.label || n.id, isStart: !!n.data?.isStart, isAccept: !!n.data?.isAccept })),
           edges: edges.map(e => ({ id: e.id, source: e.source, target: e.target, label: e.data?.label || '' })),
-          provider,
-          api_key: apiKey
+          provider: llmConfig.provider,
+          api_key: llmConfig.api_key,
+          model: llmConfig.model,
+          base_url: llmConfig.base_url
         })
       });
 
@@ -1429,9 +1422,9 @@ function Editor() {
               </button>
             ))}
             
-            {/* Settings button toggles Plugins Modal */}
+            {/* Settings button opens the unified Settings modal */}
             <button
-              onClick={() => setIsPluginsOpen(true)}
+              onClick={() => { setSettingsInitialTab('ai'); setIsSettingsOpen(true); }}
               className="w-full flex items-center px-4 py-3 rounded-xl transition-all border-none cursor-pointer text-gray-400 hover:text-white hover:bg-white/5 bg-transparent"
             >
               <div className="flex items-center gap-3">
@@ -1628,6 +1621,7 @@ function Editor() {
             recentProjects={recentProjects}
             continueProject={continueProject}
             onSelectProject={handleSelectRecentProject}
+            onViewHistory={loadProjectsFromDB}
             lessonHistory={lessonHistory}
             onSelectLesson={handleSelectLesson}
           />
@@ -2362,21 +2356,6 @@ function Editor() {
         </div>
       )}
 
-      {/* Plugins Modal Dialog */}
-      {isPluginsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
-          <div className="bg-[#0a0f1d] border border-white/10 p-6 rounded-2xl w-full max-w-md shadow-2xl relative animate-slide-down animate-fade-in">
-            <button
-              onClick={() => setIsPluginsOpen(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-white cursor-pointer border-none bg-transparent font-bold text-sm"
-            >
-              ✕
-            </button>
-            <PluginManager />
-          </div>
-        </div>
-      )}
-
       {isPresentationMode && (
         <button
           onClick={() => setIsPresentationMode(false)}
@@ -2386,75 +2365,11 @@ function Editor() {
         </button>
       )}
 
-      {/* AI Settings Modal */}
-      {isSettingsOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#0a0f1d] border border-white/10 rounded-2xl p-6 flex flex-col gap-4 shadow-2xl animate-fade-in select-none">
-            <div className="flex items-center gap-2 mb-2 pb-3 border-b border-white/10">
-              <Settings className="w-5 h-5 text-[#00f0ff] animate-spin-slow" />
-              <h3 className="text-base font-bold tracking-wider uppercase text-white">AI Tutor Configuration</h3>
-            </div>
-            
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-400 font-bold uppercase">LLM Provider</label>
-              <select
-                value={apiProvider}
-                onChange={(e) => setApiProvider(e.target.value as any)}
-                className="w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#00f0ff]"
-              >
-                <option value="Ollama">Local Ollama (Default)</option>
-                <option value="Gemini">Gemini API (Google)</option>
-                <option value="OpenAI">OpenAI API</option>
-                <option value="Groq">Groq Cloud API</option>
-              </select>
-            </div>
-
-            {apiProvider === 'Gemini' && (
-              <div className="flex flex-col gap-1 animate-fade-in">
-                <label className="text-xs text-gray-400 font-bold uppercase">Gemini API Key</label>
-                <input
-                  type="password"
-                  value={geminiKey}
-                  onChange={(e) => setGeminiKey(e.target.value)}
-                  placeholder="AIzaSy..."
-                  className="w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#00f0ff] font-mono"
-                />
-              </div>
-            )}
-
-            {apiProvider === 'OpenAI' && (
-              <div className="flex flex-col gap-1 animate-fade-in">
-                <label className="text-xs text-gray-400 font-bold uppercase">OpenAI API Key</label>
-                <input
-                  type="password"
-                  value={openaiKey}
-                  onChange={(e) => setOpenaiKey(e.target.value)}
-                  placeholder="sk-proj-..."
-                  className="w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#00f0ff] font-mono"
-                />
-              </div>
-            )}
-
-            {apiProvider === 'Groq' && (
-              <div className="flex flex-col gap-1 animate-fade-in">
-                <label className="text-xs text-gray-400 font-bold uppercase">Groq API Key</label>
-                <input
-                  type="password"
-                  value={groqKey}
-                  onChange={(e) => setGroqKey(e.target.value)}
-                  placeholder="gsk_..."
-                  className="w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#00f0ff] font-mono"
-                />
-              </div>
-            )}
-
-            <div className="flex gap-3 justify-end mt-4 pt-4 border-t border-white/10">
-              <Button variant="secondary" onClick={() => setIsSettingsOpen(false)}>Cancel</Button>
-              <Button onClick={saveSettings}>Save Config</Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        initialTab={settingsInitialTab}
+      />
 
       {/* AI Grading Report Modal */}
       {gradingResult && (

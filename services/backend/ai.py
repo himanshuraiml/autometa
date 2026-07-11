@@ -79,58 +79,101 @@ SYSTEM_PROMPTS = {
 
 import os
 
-async def call_external_llm(prompt: str, provider: str, api_key: str, response_format: str = "text") -> Optional[str]:
+async def call_external_llm(
+    prompt: str,
+    provider: str,
+    api_key: str,
+    response_format: str = "text",
+    model: Optional[str] = None,
+    base_url: Optional[str] = None
+) -> Optional[str]:
     async with httpx.AsyncClient(timeout=120.0) as client:
         try:
             if provider == "Gemini":
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+                chosen_model = model or "gemini-2.5-flash"
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{chosen_model}:generateContent?key={api_key}"
                 body = {
                     "contents": [{"parts": [{"text": prompt}]}]
                 }
                 if response_format == "json":
                     body["generationConfig"] = {"responseMimeType": "application/json"}
-                
+
                 resp = await client.post(url, json=body)
                 if resp.status_code == 200:
                     return resp.json()["candidates"][0]["content"]["parts"][0]["text"]
-                    
+
             elif provider == "OpenAI":
                 url = "https://api.openai.com/v1/chat/completions"
                 headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
                 body = {
-                    "model": "gpt-4o-mini",
+                    "model": model or "gpt-4o-mini",
                     "messages": [{"role": "user", "content": prompt}]
                 }
                 if response_format == "json":
                     body["response_format"] = {"type": "json_object"}
-                    
+
                 resp = await client.post(url, headers=headers, json=body)
                 if resp.status_code == 200:
                     return resp.json()["choices"][0]["message"]["content"]
-                    
+
             elif provider == "Groq":
                 url = "https://api.groq.com/openai/v1/chat/completions"
                 headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
                 body = {
-                    "model": "llama-3.3-70b-versatile",
+                    "model": model or "llama-3.3-70b-versatile",
                     "messages": [{"role": "user", "content": prompt}]
                 }
                 if response_format == "json":
                     body["response_format"] = {"type": "json_object"}
-                    
+
                 resp = await client.post(url, headers=headers, json=body)
                 if resp.status_code == 200:
                     return resp.json()["choices"][0]["message"]["content"]
+
+            elif provider == "Custom":
+                # Any OpenAI-compatible chat completions endpoint (OpenRouter, Together,
+                # local LM Studio / vLLM servers, etc). base_url and model are required;
+                # api_key is optional since some local servers don't need one.
+                if not base_url or not model:
+                    print("Custom provider requires both base_url and model.")
+                    return None
+                url = base_url.rstrip("/")
+                if not url.endswith("/chat/completions"):
+                    url = f"{url}/chat/completions"
+                headers = {"Content-Type": "application/json"}
+                if api_key:
+                    headers["Authorization"] = f"Bearer {api_key}"
+                body = {
+                    "model": model,
+                    "messages": [{"role": "user", "content": prompt}]
+                }
+                if response_format == "json":
+                    body["response_format"] = {"type": "json_object"}
+
+                resp = await client.post(url, headers=headers, json=body)
+                if resp.status_code == 200:
+                    return resp.json()["choices"][0]["message"]["content"]
+                else:
+                    print(f"Custom provider returned HTTP {resp.status_code}: {resp.text[:300]}")
         except Exception as e:
             print(f"Error calling {provider} API: {e}")
     return None
+
+def _external_llm_ready(provider: str, api_key: Optional[str], base_url: Optional[str], model: Optional[str]) -> bool:
+    if provider in ["Gemini", "OpenAI", "Groq"]:
+        return bool(api_key)
+    if provider == "Custom":
+        return bool(base_url and model)
+    return False
 
 async def generate_tutor_response(
     prompt: str,
     mode: str = "Intermediate",
     context_data: Optional[Dict[str, Any]] = None,
     provider: Optional[str] = None,
-    api_key: Optional[str] = None
+    api_key: Optional[str] = None,
+    model: Optional[str] = None,
+    base_url: Optional[str] = None
 ) -> str:
     system_instruction = SYSTEM_PROMPTS.get(mode, SYSTEM_PROMPTS["Intermediate"])
     
@@ -164,8 +207,8 @@ async def generate_tutor_response(
             chosen_key = os.getenv("GROQ_API_KEY")
 
     # 2. Try external provider first if configured
-    if chosen_provider in ["Gemini", "OpenAI", "Groq"] and chosen_key:
-        response_text = await call_external_llm(full_prompt, chosen_provider, chosen_key)
+    if _external_llm_ready(chosen_provider, chosen_key, base_url, model):
+        response_text = await call_external_llm(full_prompt, chosen_provider, chosen_key or "", model=model, base_url=base_url)
         if response_text:
             return response_text
 
@@ -203,7 +246,9 @@ async def generate_lesson(
     include_quizzes: bool = True,
     generate_narration: bool = True,
     provider: Optional[str] = None,
-    api_key: Optional[str] = None
+    api_key: Optional[str] = None,
+    model: Optional[str] = None,
+    base_url: Optional[str] = None
 ) -> Dict[str, Any]:
     system_instruction = SYSTEM_PROMPTS.get(difficulty, "") if difficulty else ""
 
@@ -233,8 +278,8 @@ async def generate_lesson(
             chosen_key = os.getenv("GROQ_API_KEY")
 
     # 2. Try external provider
-    if chosen_provider in ["Gemini", "OpenAI", "Groq"] and chosen_key:
-        raw_text = await call_external_llm(full_prompt, chosen_provider, chosen_key, response_format="json")
+    if _external_llm_ready(chosen_provider, chosen_key, base_url, model):
+        raw_text = await call_external_llm(full_prompt, chosen_provider, chosen_key or "", response_format="json", model=model, base_url=base_url)
         if raw_text:
             try:
                 return _extract_json_object(raw_text)

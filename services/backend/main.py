@@ -59,6 +59,8 @@ class ChatRequest(BaseModel):
     context: Optional[Dict[str, Any]] = None
     provider: Optional[str] = None
     api_key: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
 
 @app.post("/api/tutor/chat")
 async def chat_with_tutor(request: ChatRequest):
@@ -67,7 +69,9 @@ async def chat_with_tutor(request: ChatRequest):
         mode=request.mode,
         context_data=request.context,
         provider=request.provider,
-        api_key=request.api_key
+        api_key=request.api_key,
+        model=request.model,
+        base_url=request.base_url
     )
     return {"response": response}
 
@@ -102,6 +106,8 @@ class LessonRequest(BaseModel):
     generate_narration: bool = True
     provider: Optional[str] = None
     api_key: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
 
 class LessonDiagramNode(BaseModel):
     id: str
@@ -194,7 +200,9 @@ async def generate_lesson_endpoint(request: LessonRequest):
             include_quizzes=request.include_quizzes,
             generate_narration=request.generate_narration,
             provider=request.provider,
-            api_key=request.api_key
+            api_key=request.api_key,
+            model=request.model,
+            base_url=request.base_url
         )
         raw_lesson.setdefault("audience", request.audience)
         raw_lesson.setdefault("duration", request.duration)
@@ -224,6 +232,8 @@ class GradeRequest(BaseModel):
     edges: List[GradeRequestEdge]
     provider: Optional[str] = None
     api_key: Optional[str] = None
+    model: Optional[str] = None
+    base_url: Optional[str] = None
 
 # Epsilon transitions helper & simulator
 def simulate_automaton(nodes: List[Dict[str, Any]], edges: List[Dict[str, Any]], input_string: str, is_dfa: bool) -> bool:
@@ -321,9 +331,11 @@ async def grade_automaton(request: GradeRequest):
         prompt=prompt,
         mode="Intermediate",
         provider=request.provider,
-        api_key=request.api_key
+        api_key=request.api_key,
+        model=request.model,
+        base_url=request.base_url
     )
-    
+
     return {"response": response}
 
 if __name__ == "__main__":
