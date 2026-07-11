@@ -11,6 +11,7 @@ matching exactly this schema:
 
 {
   "topic": string,
+  "learningObjectives": [string],        // 3-6 short "students will be able to..." style objectives for the whole lesson
   "slides": [
     {
       "title": string,
@@ -196,10 +197,29 @@ async def generate_tutor_response(
 async def generate_lesson(
     topic: str,
     audience: str = "first-year students",
+    duration: Optional[str] = None,
+    difficulty: Optional[str] = None,
+    teaching_style: Optional[str] = None,
+    include_quizzes: bool = True,
+    generate_narration: bool = True,
     provider: Optional[str] = None,
     api_key: Optional[str] = None
 ) -> Dict[str, Any]:
-    full_prompt = f"Teach {topic} to {audience}.\n{LESSON_SCHEMA_INSTRUCTIONS}"
+    system_instruction = SYSTEM_PROMPTS.get(difficulty, "") if difficulty else ""
+
+    brief_lines = [f"Teach {topic} to {audience}."]
+    if duration:
+        brief_lines.append(f"Total lesson duration: {duration}. Pace the number and depth of slides to fit this time.")
+    if difficulty:
+        brief_lines.append(f"Difficulty level: {difficulty}.")
+    if teaching_style:
+        brief_lines.append(f"Teaching style: {teaching_style}.")
+    if not include_quizzes:
+        brief_lines.append("Do not include quizQuestion, quizOptions, or quizAnswer on any slide (omit those fields entirely).")
+    if not generate_narration:
+        brief_lines.append("Do not include a narration field on any slide (omit it entirely).")
+
+    full_prompt = f"{system_instruction}\n{' '.join(brief_lines)}\n{LESSON_SCHEMA_INSTRUCTIONS}"
 
     # 1. Resolve Provider and Key
     chosen_provider = provider or "Ollama"

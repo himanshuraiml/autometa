@@ -28,6 +28,7 @@ import { GrammarEditor } from './components/GrammarEditor';
 import { LessonBuilder } from './components/LessonBuilder';
 import { DashboardView } from './components/DashboardView';
 import { PluginManager } from './components/PluginManager';
+import { LESSON_HISTORY_KEY, LESSON_HISTORY_LIMIT, type SavedLesson } from './utils/lessonHistory';
 import { PREDEFINED_TEMPLATES } from './data/templates';
 import {
   exportToSVG, exportToPNG, exportToHTML, exportToPDF,
@@ -38,6 +39,9 @@ import {
   Trash2, CheckCircle2, PlayCircle, FileDown, FileUp, Sparkles,
   Video, VideoOff, Tv, Home, Blocks, Plus, Settings, BookOpen, Film
 } from 'lucide-react';
+
+const IS_MAC_PLATFORM = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform);
+const DELETE_SHORTCUT_HINT = IS_MAC_PLATFORM ? '⌘⌫' : 'Ctrl+Del';
 
 interface NfaToDfaRow {
   stateId: string;
@@ -418,6 +422,34 @@ function Editor() {
   const [recentProjects, setRecentProjects] = useState<any[]>([]);
   const [continueProject, setContinueProject] = useState<any>(null);
 
+  const [lessonHistory, setLessonHistory] = useState<SavedLesson[]>([]);
+  const [pendingLesson, setPendingLesson] = useState<SavedLesson | null>(null);
+
+  useEffect(() => {
+    const storedLessons = localStorage.getItem(LESSON_HISTORY_KEY);
+    if (storedLessons) {
+      try {
+        setLessonHistory(JSON.parse(storedLessons));
+      } catch {
+        // ignore malformed history
+      }
+    }
+  }, []);
+
+  const saveLessonToHistory = (lesson: Omit<SavedLesson, 'id' | 'savedAt'>) => {
+    const entry: SavedLesson = { ...lesson, id: 'lesson-' + Date.now(), savedAt: new Date().toISOString() };
+    setLessonHistory(prev => {
+      const updated = [entry, ...prev].slice(0, LESSON_HISTORY_LIMIT);
+      localStorage.setItem(LESSON_HISTORY_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleSelectLesson = (lesson: SavedLesson) => {
+    setPendingLesson(lesson);
+    setActiveView('lessons');
+  };
+
   useEffect(() => {
     const storedRecent = localStorage.getItem('autometa_recent_projects');
     if (storedRecent) {
@@ -691,6 +723,64 @@ function Editor() {
       setPlayhead(0);
     }
   };
+
+  // Keyboard shortcuts (Editor view only): Cmd/Ctrl+Delete removes the selected
+  // node or edge, Space toggles simulation play/pause, and Left/Right arrows step
+  // the timeline. Ignored while the user is typing in any input/textarea/select.
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (activeView !== 'graph') return;
+
+      const target = e.target as HTMLElement | null;
+      const isTypingTarget = !!target && (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable
+      );
+      if (isTypingTarget) return;
+
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'Delete' || e.key === 'Backspace')) {
+        e.preventDefault();
+        if (selectedNode) {
+          deleteNode(selectedNode.id);
+          setSelectedNode(null);
+        } else if (selectedEdge) {
+          deleteEdge(selectedEdge.id);
+          setSelectedEdge(null);
+        }
+        return;
+      }
+
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (isPlaying) {
+          setIsPlaying(false);
+        } else if (currentStep < simulationEvents.length - 1) {
+          setIsPlaying(true);
+        }
+        return;
+      }
+
+      if (e.key === 'ArrowRight') {
+        if (currentStep < simulationEvents.length - 1) {
+          e.preventDefault();
+          stepForward();
+        }
+        return;
+      }
+
+      if (e.key === 'ArrowLeft') {
+        if (currentStep > 0) {
+          e.preventDefault();
+          stepBackward();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeView, selectedNode, selectedEdge, deleteNode, deleteEdge, isPlaying, currentStep, simulationEvents.length, stepForward, stepBackward]);
 
   // Playhead update loop driven by requestAnimationFrame
   useEffect(() => {
@@ -1514,11 +1604,17 @@ function Editor() {
             recentProjects={recentProjects}
             continueProject={continueProject}
             onSelectProject={handleSelectRecentProject}
+            lessonHistory={lessonHistory}
+            onSelectLesson={handleSelectLesson}
           />
         ) : activeView === 'grammars' ? (
           <GrammarEditor />
         ) : activeView === 'lessons' ? (
           <LessonBuilder
+            history={lessonHistory}
+            onSaveLesson={saveLessonToHistory}
+            lessonToLoad={pendingLesson}
+            onLessonConsumed={() => setPendingLesson(null)}
             onLoadDiagram={(diagram) => {
               stopSimulation();
               setAutomatonType(diagram.type as any);
@@ -1555,7 +1651,7 @@ function Editor() {
                 onNodeClick={handleNodeClick}
                 onEdgeClick={handleEdgeClick}
                 onPaneClick={handlePaneClick}
-                deleteKeyCode={["Backend", "Delete"]}
+                deleteKeyCode={["Backspace", "Delete"]}
                 zoomOnDoubleClick={false}
                 fitView
               >
@@ -1804,9 +1900,10 @@ function Editor() {
                           />
                         </div>
 
-                        <Button 
-                          variant="danger" 
+                        <Button
+                          variant="danger"
                           onClick={() => { deleteNode(selectedNode.id); setSelectedNode(null); }}
+                          title={`Delete State (${DELETE_SHORTCUT_HINT})`}
                           className="w-full flex items-center justify-center gap-2 mt-2 hover:scale-[1.02] active:scale-[0.98] transition-all"
                         >
                           <Trash2 className="w-4 h-4" /> Delete State
@@ -1847,9 +1944,10 @@ function Editor() {
                           )}
                         </div>
 
-                        <Button 
-                          variant="danger" 
+                        <Button
+                          variant="danger"
                           onClick={() => { deleteEdge(selectedEdge.id); setSelectedEdge(null); }}
+                          title={`Delete Transition (${DELETE_SHORTCUT_HINT})`}
                           className="w-full flex items-center justify-center gap-2 mt-2 hover:scale-[1.02] active:scale-[0.98] transition-all"
                         >
                           <Trash2 className="w-4 h-4" /> Delete Transition
@@ -2010,34 +2108,38 @@ function Editor() {
               <Film className="w-4 h-4 text-[#00f0ff]" /> {isExportingGif ? 'Exporting GIF...' : 'Export GIF'}
             </button>
 
-            <button 
+            <button
               onClick={stepBackward}
               disabled={currentStep <= 0}
+              title="Previous step (←)"
               className="p-2 rounded-lg hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <ChevronLeft className="w-6 h-6 text-white" />
             </button>
 
             {isPlaying ? (
-              <button 
+              <button
                 onClick={() => setIsPlaying(false)}
+                title="Pause (Space)"
                 className="p-3 bg-[#ff007f] rounded-full text-white shadow-glow-pink hover:scale-105 transition-all"
               >
                 <Pause className="w-6 h-6 fill-white" />
               </button>
             ) : (
-              <button 
+              <button
                 onClick={() => setIsPlaying(true)}
                 disabled={currentStep >= simulationEvents.length - 1}
+                title="Play (Space)"
                 className="p-3 bg-[#00f0ff] rounded-full text-black shadow-glow-blue hover:scale-105 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <Play className="w-6 h-6 fill-black" />
               </button>
             )}
 
-            <button 
+            <button
               onClick={stepForward}
               disabled={currentStep >= simulationEvents.length - 1}
+              title="Next step (→)"
               className="p-2 rounded-lg hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <ChevronRight className="w-6 h-6 text-white" />

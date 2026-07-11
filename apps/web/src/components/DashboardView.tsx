@@ -1,6 +1,7 @@
 import React from 'react';
-import { PlayCircle, Search, Bell, ExternalLink, BookOpen } from 'lucide-react';
+import { PlayCircle, Search, Bell, ExternalLink, BookOpen, Sparkles } from 'lucide-react';
 import { Button } from '@autometa/ui';
+import { formatRelativeTime, type SavedLesson } from '../utils/lessonHistory';
 
 interface DashboardViewProps {
   onNavigate: (view: 'graph' | 'grammars' | 'lessons') => void;
@@ -8,6 +9,8 @@ interface DashboardViewProps {
   recentProjects: any[];
   continueProject: any;
   onSelectProject: (proj: any) => void;
+  lessonHistory: SavedLesson[];
+  onSelectLesson: (lesson: SavedLesson) => void;
 }
 
 const getThumbnailUrl = (type: string) => {
@@ -30,7 +33,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onNewSimulation,
   recentProjects,
   continueProject,
-  onSelectProject
+  onSelectProject,
+  lessonHistory,
+  onSelectLesson
 }) => {
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#060B1A]">
@@ -163,6 +168,42 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               ))}
             </div>
           </section>
+
+          {/* Recent Lessons Grid */}
+          {lessonHistory.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-extrabold text-white uppercase tracking-wider">Recent Lessons</h3>
+                <button
+                  onClick={() => onNavigate('lessons')}
+                  className="text-xs font-bold text-[#3b82f6] flex items-center gap-1 hover:underline cursor-pointer bg-transparent border-none"
+                >
+                  Open Lesson Builder →
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                {lessonHistory.map((lesson) => (
+                  <div
+                    key={lesson.id}
+                    onClick={() => onSelectLesson(lesson)}
+                    className="bg-[#18253F]/40 border border-white/10 p-4 rounded-xl hover:border-[#00f0ff]/50 transition-all group cursor-pointer flex flex-col gap-3"
+                  >
+                    <div className="w-full aspect-[16/9] rounded-lg bg-black/40 overflow-hidden border border-white/5 relative flex items-center justify-center">
+                      <Sparkles className="w-8 h-8 text-[#00f0ff]/40 group-hover:text-[#00f0ff]/70 transition-colors" />
+                    </div>
+                    <div>
+                      <h5 className="text-xs font-bold text-white truncate mb-0.5">{lesson.topic}</h5>
+                      <div className="flex items-center justify-between text-[10px] text-gray-400 font-medium">
+                        <span>{[lesson.difficulty, `${lesson.slides.length} slides`].filter(Boolean).join(' • ')}</span>
+                        <span>{formatRelativeTime(lesson.savedAt)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Quick Start Templates Row */}
           <section className="mb-4">

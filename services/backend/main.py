@@ -95,6 +95,11 @@ def _coerce_float(v: Any) -> Any:
 class LessonRequest(BaseModel):
     topic: str
     audience: str = "first-year students"
+    duration: Optional[str] = None
+    difficulty: Optional[str] = None
+    teaching_style: Optional[str] = None
+    include_quizzes: bool = True
+    generate_narration: bool = True
     provider: Optional[str] = None
     api_key: Optional[str] = None
 
@@ -156,12 +161,24 @@ class LessonWorksheetItem(BaseModel):
 
 class LessonResponse(BaseModel):
     topic: str
+    audience: str = "first-year students"
+    duration: Optional[str] = None
+    difficulty: Optional[str] = None
+    teachingStyle: Optional[str] = None
+    learningObjectives: List[str] = []
     slides: List[LessonSlide]
     summary: str = ""
     worksheet: List[LessonWorksheetItem] = []
 
     _coerce_topic = field_validator("topic", mode="before")(_coerce_str)
     _coerce_summary = field_validator("summary", mode="before")(_coerce_str)
+
+    @field_validator("learningObjectives", mode="before")
+    @classmethod
+    def _coerce_learning_objectives(cls, v):
+        if isinstance(v, list):
+            return [_coerce_str(item) for item in v]
+        return v
 
 @app.post("/api/tutor/lesson", response_model=LessonResponse)
 async def generate_lesson_endpoint(request: LessonRequest):
@@ -171,9 +188,18 @@ async def generate_lesson_endpoint(request: LessonRequest):
         raw_lesson = await generate_lesson(
             topic=request.topic,
             audience=request.audience,
+            duration=request.duration,
+            difficulty=request.difficulty,
+            teaching_style=request.teaching_style,
+            include_quizzes=request.include_quizzes,
+            generate_narration=request.generate_narration,
             provider=request.provider,
             api_key=request.api_key
         )
+        raw_lesson.setdefault("audience", request.audience)
+        raw_lesson.setdefault("duration", request.duration)
+        raw_lesson.setdefault("difficulty", request.difficulty)
+        raw_lesson.setdefault("teachingStyle", request.teaching_style)
         return LessonResponse.model_validate(raw_lesson)
     except ValueError as e:
         raise HTTPException(status_code=502, detail=str(e))
