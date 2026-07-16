@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { BaseEdge, EdgeLabelRenderer, getBezierPath } from '@xyflow/react';
 import type { EdgeProps } from '@xyflow/react';
 
@@ -5,10 +6,16 @@ export interface TransitionEdgeData {
   label: string;
   isActive?: boolean;
   traversalProgress?: number;
+  /** Pixel separation for edges sharing the same endpoints. */
+  parallelOffset?: number;
+  loopDirection?: 'top' | 'right' | 'bottom' | 'left';
 }
 
-export const TransitionEdge = ({
+/** Memoized like StateNode — large automata have far more edges than states, so this matters more for render cost. */
+export const TransitionEdge = memo(({
   id: _id,
+  source,
+  target,
   sourceX,
   sourceY,
   targetX,
@@ -24,19 +31,26 @@ export const TransitionEdge = ({
   const label = edgeData?.label || '';
   const isActive = edgeData?.isActive || false;
 
-  // Determine if it's a self loop
-  const isSelfLoop = Math.abs(sourceX - targetX) < 10 && Math.abs(sourceY - targetY) < 10;
+  const isSelfLoop = source === target;
+  const parallelOffset = edgeData?.parallelOffset ?? 0;
 
   let edgePath = '';
   let labelX = 0;
   let labelY = 0;
 
   if (isSelfLoop) {
-    // Loop upwards
+    const direction = edgeData?.loopDirection ?? 'top';
+    const distance = 60 + Math.abs(parallelOffset);
     const radius = 25;
-    edgePath = `M ${sourceX} ${sourceY} C ${sourceX - radius} ${sourceY - 60}, ${sourceX + radius} ${sourceY - 60}, ${sourceX} ${sourceY}`;
-    labelX = sourceX;
-    labelY = sourceY - 45;
+    const vectors = {
+      top: { x: 0, y: -1, px: 1, py: 0 }, right: { x: 1, y: 0, px: 0, py: 1 },
+      bottom: { x: 0, y: 1, px: 1, py: 0 }, left: { x: -1, y: 0, px: 0, py: 1 },
+    }[direction];
+    const tipX = sourceX + vectors.x * distance;
+    const tipY = sourceY + vectors.y * distance;
+    edgePath = `M ${sourceX} ${sourceY} C ${tipX - vectors.px * radius} ${tipY - vectors.py * radius}, ${tipX + vectors.px * radius} ${tipY + vectors.py * radius}, ${sourceX} ${sourceY}`;
+    labelX = sourceX + vectors.x * (distance - 15);
+    labelY = sourceY + vectors.y * (distance - 15);
   } else {
     // Standard transition path
     const [path, lx, ly] = getBezierPath({
@@ -47,42 +61,55 @@ export const TransitionEdge = ({
       targetY,
       targetPosition,
     });
-    edgePath = path;
-    labelX = lx;
-    labelY = ly;
+    // A perpendicular translation makes parallel transitions legible while
+    // retaining React Flow's endpoint-aware Bezier curve.
+    const dx = targetX - sourceX;
+    const dy = targetY - sourceY;
+    const length = Math.hypot(dx, dy) || 1;
+    const offsetX = (-dy / length) * parallelOffset;
+    const offsetY = (dx / length) * parallelOffset;
+    edgePath = parallelOffset
+      ? `M ${sourceX} ${sourceY} Q ${(sourceX + targetX) / 2 + offsetX} ${(sourceY + targetY) / 2 + offsetY} ${targetX} ${targetY}`
+      : path;
+    labelX = parallelOffset ? (sourceX + targetX) / 2 + offsetX : lx;
+    labelY = parallelOffset ? (sourceY + targetY) / 2 + offsetY : ly;
   }
 
   const strokeColor = isActive 
-    ? '#00f0ff' 
+    ? 'var(--color-blue)' 
     : selected 
-      ? '#ff007f' 
-      : 'rgba(156, 163, 175, 0.6)';
+      ? 'var(--color-violet)' 
+      : 'var(--border-color)';
 
   const strokeWidth = isActive ? 3 : selected ? 2.5 : 2;
 
   const traversalProgress = edgeData?.traversalProgress;
 
+  const description = `Transition from ${source} to ${target}${label ? ` on ${label}` : ''}`;
+
   return (
     <>
+      <title>{description}</title>
       <BaseEdge
         path={edgePath}
         markerEnd={markerEnd}
+        aria-label={description}
         style={{
           ...style,
           stroke: strokeColor,
           strokeWidth,
-          filter: isActive ? 'drop-shadow(0 0 5px rgba(0, 240, 255, 0.5))' : undefined,
+          filter: isActive ? 'drop-shadow(0 0 5px var(--color-blue))' : undefined,
         }}
       />
       {traversalProgress !== undefined && traversalProgress > 0 && traversalProgress < 1 && (
         <circle
           r="5"
-          fill="#00f0ff"
+          fill="var(--color-blue)"
           style={{
             offsetPath: `path('${edgePath}')`,
             offsetDistance: `${traversalProgress * 100}%`,
           }}
-          className="shadow-[0_0_10px_#00f0ff] pointer-events-none"
+          className="shadow-[0_0_10px_var(--color-blue)] pointer-events-none"
         />
       )}
       {label && (
@@ -91,13 +118,13 @@ export const TransitionEdge = ({
             style={{
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-              background: '#0a0f1d',
+              background: 'var(--bg-primary)',
               padding: '2px 8px',
               borderRadius: '4px',
               fontSize: '11px',
               fontWeight: 'bold',
-              color: isActive ? '#00f0ff' : '#e2e8f0',
-              border: `1px solid ${isActive ? '#00f0ff' : 'rgba(255,255,255,0.1)'}`,
+              color: isActive ? 'var(--color-blue)' : 'var(--text-main)',
+              border: `1px solid ${isActive ? 'var(--color-blue)' : 'var(--border-color)'}`,
               pointerEvents: 'all',
               userSelect: 'none',
             }}
@@ -109,4 +136,6 @@ export const TransitionEdge = ({
       )}
     </>
   );
-};
+});
+
+TransitionEdge.displayName = 'TransitionEdge';

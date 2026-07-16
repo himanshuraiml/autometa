@@ -92,9 +92,9 @@ describe('Advanced Rule Engine - Compilers & Parsing Algorithms', () => {
         'A': ['b', 'ε']
       };
       const { table, conflicts } = generateLL1Table(grammar, 'S');
-      expect(table['S']['a']).toBe('a A');
-      expect(table['A']['b']).toBe('b');
-      expect(conflicts).toBe(false);
+      expect(table['S']['a']).toEqual(['a A']);
+      expect(table['A']['b']).toEqual(['b']);
+      expect(conflicts).toEqual([]);
     });
   });
 

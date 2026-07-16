@@ -10,17 +10,23 @@ export default {
   theme: {
     extend: {
       colors: {
-        darkBg: '#0b0f19',
-        darkCard: 'rgba(17, 24, 39, 0.7)',
-        neonBlue: '#00f0ff',
-        neonPink: '#ff007f',
-        neonGreen: '#39ff14',
+        darkBg: '#050811',
+        darkCard: 'rgba(11, 18, 30, 0.6)',
+        neonBlue: '#0ea5e9', // maps to auroraCyan
+        neonPink: '#8b5cf6', // maps to auroraPurple
+        neonGreen: '#00e5a3', // maps to auroraMint
+        auroraSpruce: '#050811',
+        auroraCard: '#0b121e',
+        auroraMint: '#00e5a3',
+        auroraPurple: '#8b5cf6',
+        auroraCyan: '#0ea5e9',
+        auroraIndigo: '#6366f1',
       },
       boxShadow: {
         'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
-        'glow-blue': '0 0 15px rgba(0, 240, 255, 0.4)',
-        'glow-pink': '0 0 15px rgba(255, 0, 127, 0.4)',
-        'glow-green': '0 0 15px rgba(57, 255, 20, 0.4)',
+        'glow-blue': '0 0 15px rgba(14, 165, 233, 0.4)',
+        'glow-pink': '0 0 15px rgba(139, 92, 246, 0.4)',
+        'glow-green': '0 0 15px rgba(0, 229, 163, 0.4)',
       },
       backdropBlur: {
         'glass': '12px',

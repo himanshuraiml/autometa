@@ -8,6 +8,8 @@ import { MarkdownRenderer } from './MarkdownRenderer';
 import { downloadFile } from '../utils/exportUtils';
 import { formatRelativeTime, type SavedLesson } from '../utils/lessonHistory';
 import { getLLMConfig } from '../utils/llmConfig';
+import { ApiError, generateLessonRequest } from '../utils/apiClient';
+import { useToast } from './ToastProvider';
 
 export type AutomatonEngineType = 'DFA' | 'NFA' | 'Mealy' | 'Moore' | 'PDA' | 'TM';
 
@@ -109,24 +111,24 @@ const StatTile = ({ label, value }: { label: string; value: string | number }) =
 const HistoryPanel = ({ history, onSelect }: { history: SavedLesson[]; onSelect: (lesson: SavedLesson) => void }) => {
   if (history.length === 0) return null;
   return (
-    <div className="w-full flex flex-col gap-3 bg-white/5 p-5 rounded-2xl border border-white/5">
-      <h3 className="text-xs uppercase tracking-widest text-gray-400 font-black flex items-center gap-1.5">
-        <History className="w-3.5 h-3.5" /> <span>Past Lessons</span>
+    <div className="w-full flex flex-col gap-3 bg-white/5 p-5 rounded-2xl border border-white/5 shadow-md">
+      <h3 className="text-[10px] uppercase tracking-widest text-slate-400 font-black flex items-center gap-1.5">
+        <History className="w-3.5 h-3.5 text-[#8b5cf6]" /> <span>Past Lessons</span>
       </h3>
       <div className="flex flex-col gap-1.5 max-h-64 overflow-y-auto pr-1">
         {history.map((item) => (
           <button
             key={item.id}
             onClick={() => onSelect(item)}
-            className="text-left px-3.5 py-2.5 rounded-lg border border-white/5 bg-black/30 hover:border-[#00f0ff]/30 hover:bg-white/5 transition-all cursor-pointer flex items-center justify-between gap-3"
+            className="text-left px-3.5 py-2.5 rounded-lg border border-white/5 bg-black/30 hover:border-[#00e5a3]/30 hover:bg-white/5 transition-all duration-300 cursor-pointer flex items-center justify-between gap-3 focus:outline-none focus:ring-2 focus:ring-[#00e5a3]/20"
           >
             <div className="flex flex-col gap-0.5 min-w-0">
               <span className="text-xs font-bold text-white truncate">{item.topic}</span>
-              <span className="text-[10px] text-gray-400">
+              <span className="text-[10px] text-slate-400">
                 {[item.difficulty, item.duration, `${item.slides.length} slides`].filter(Boolean).join(' • ')}
               </span>
             </div>
-            <span className="text-[10px] text-gray-500 shrink-0">{formatRelativeTime(item.savedAt)}</span>
+            <span className="text-[10px] text-slate-500 shrink-0">{formatRelativeTime(item.savedAt)}</span>
           </button>
         ))}
       </div>
@@ -146,7 +148,7 @@ const GenerationForm = ({
 }) => (
   <form
     onSubmit={(e) => { e.preventDefault(); onSubmit(); }}
-    className="w-full flex flex-col gap-3 bg-black/50 border border-white/10 rounded-2xl p-4 focus-within:border-[#00f0ff] transition-colors"
+    className="w-full flex flex-col gap-3 bg-black/50 border border-white/10 rounded-2xl p-4 focus-within:border-[#00e5a3] transition-colors"
   >
     <input
       autoFocus={autoFocus}
@@ -154,51 +156,55 @@ const GenerationForm = ({
       value={options.topic}
       onChange={(e) => onChange({ ...options, topic: e.target.value })}
       placeholder="e.g. Teach DFA to first-year Computer Science students"
-      className="bg-transparent text-sm text-white placeholder:text-gray-500 focus:outline-none border-b border-white/10 pb-2.5"
+      className="bg-transparent text-sm text-white placeholder:text-slate-500 focus:outline-none border-b border-white/10 pb-2.5"
+      aria-label="Computer science topic prompt"
     />
     <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
       <select
         value={options.duration}
         onChange={(e) => onChange({ ...options, duration: e.target.value })}
-        className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-[#00f0ff] cursor-pointer"
+        className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-[#00e5a3] cursor-pointer focus:ring-2 focus:ring-[#00e5a3]/20 transition-all"
+        aria-label="Lesson duration"
       >
-        {DURATION_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
+        {DURATION_OPTIONS.map((d) => <option className="bg-[#0b121e]" key={d} value={d}>{d}</option>)}
       </select>
       <select
         value={options.difficulty}
         onChange={(e) => onChange({ ...options, difficulty: e.target.value })}
-        className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-[#00f0ff] cursor-pointer"
+        className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-[#00e5a3] cursor-pointer focus:ring-2 focus:ring-[#00e5a3]/20 transition-all"
+        aria-label="Lesson difficulty level"
       >
-        {DIFFICULTY_LEVELS.map((d) => <option key={d} value={d}>{d}</option>)}
+        {DIFFICULTY_LEVELS.map((d) => <option className="bg-[#0b121e]" key={d} value={d}>{d}</option>)}
       </select>
       <input
         type="text"
         value={options.teachingStyle}
         onChange={(e) => onChange({ ...options, teachingStyle: e.target.value })}
         placeholder="Teaching style"
-        className="col-span-2 md:col-span-1 bg-white/5 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white placeholder:text-gray-500 focus:outline-none focus:border-[#00f0ff]"
+        className="col-span-2 md:col-span-1 bg-white/5 border border-white/10 rounded-lg px-2.5 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-[#00e5a3] focus:ring-2 focus:ring-[#00e5a3]/20 transition-all"
+        aria-label="Custom teaching style description"
       />
     </div>
     <div className="flex flex-wrap items-center gap-4">
-      <label className="flex items-center gap-1.5 text-[11px] text-gray-400 cursor-pointer select-none">
+      <label className="flex items-center gap-1.5 text-[11px] text-slate-400 cursor-pointer select-none">
         <input
           type="checkbox"
           checked={options.includeQuizzes}
           onChange={(e) => onChange({ ...options, includeQuizzes: e.target.checked })}
-          className="accent-[#00f0ff]"
+          className="accent-[#00e5a3] focus:ring-2 focus:ring-[#00e5a3]/30"
         />
         Include quizzes and practical exercises
       </label>
-      <label className="flex items-center gap-1.5 text-[11px] text-gray-400 cursor-pointer select-none">
+      <label className="flex items-center gap-1.5 text-[11px] text-slate-400 cursor-pointer select-none">
         <input
           type="checkbox"
           checked={options.generateNarration}
           onChange={(e) => onChange({ ...options, generateNarration: e.target.checked })}
-          className="accent-[#00f0ff]"
+          className="accent-[#00e5a3] focus:ring-2 focus:ring-[#00e5a3]/30"
         />
         Generate narration for each slide
       </label>
-      <Button type="submit" disabled={isGenerating || !options.topic} className="ml-auto flex items-center gap-1.5 !rounded-xl">
+      <Button type="submit" disabled={isGenerating || !options.topic} className="ml-auto flex items-center gap-1.5 !rounded-xl !bg-[#00e5a3] hover:opacity-90 !text-black !font-bold">
         {isGenerating ? "Generating..." : <>{submitLabel} <Send className="w-3.5 h-3.5" /></>}
       </Button>
     </div>
@@ -206,16 +212,38 @@ const GenerationForm = ({
 );
 
 export const LessonBuilder = ({ onLoadDiagram, history = [], onSaveLesson, lessonToLoad, onLessonConsumed }: LessonBuilderProps) => {
+  const { showToast } = useToast();
   const [lesson, setLesson] = useState<LessonData | null>(null);
   const [options, setOptions] = useState<GenerationOptions>(DEFAULT_OPTIONS);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
+  const [loadingPhase, setLoadingPhase] = useState(0);
+  const PHASES = [
+    "Analyzing topic & planning learning objectives...",
+    "Synthesizing slide deck structure & outlines...",
+    "Generating deep-dive explanations & LaTeX math...",
+    "Designing interactive quiz questions & feedback...",
+    "Drafting detailed professor lecture narration...",
+    "Structuring printable worksheet & summary..."
+  ];
+
+  useEffect(() => {
+    if (!isGenerating) {
+      setLoadingPhase(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setLoadingPhase(p => (p + 1) % PHASES.length);
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [isGenerating]);
+
   // A lesson picked from history (Dashboard or the panel below) arrives via this prop.
   useEffect(() => {
     if (!lessonToLoad) return;
-    const { id, savedAt, ...rest } = lessonToLoad;
+    const { id: _id, savedAt: _savedAt, ...rest } = lessonToLoad;
     setLesson(rest);
     setSelectedAnswers({});
     setGenerationError(null);
@@ -223,7 +251,7 @@ export const LessonBuilder = ({ onLoadDiagram, history = [], onSaveLesson, lesso
   }, [lessonToLoad]);
 
   const loadFromHistory = (item: SavedLesson) => {
-    const { id, savedAt, ...rest } = item;
+    const { id: _id, savedAt: _savedAt, ...rest } = item;
     setLesson(rest);
     setSelectedAnswers({});
     setGenerationError(null);
@@ -270,8 +298,8 @@ export const LessonBuilder = ({ onLoadDiagram, history = [], onSaveLesson, lesso
           setSelectedAnswers({});
           onSaveLesson?.(loaded);
         }
-      } catch (err) {
-        alert("Failed to parse .lesson file.");
+      } catch {
+        showToast("Failed to parse .lesson file.", 'error');
       }
     };
     reader.readAsText(file);
@@ -284,31 +312,20 @@ export const LessonBuilder = ({ onLoadDiagram, history = [], onSaveLesson, lesso
     try {
       const llmConfig = getLLMConfig();
 
-      const response = await fetch("http://localhost:8000/api/tutor/lesson", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          topic: opts.topic,
-          audience: opts.audience,
-          duration: opts.duration,
-          difficulty: opts.difficulty,
-          teaching_style: opts.teachingStyle,
-          include_quizzes: opts.includeQuizzes,
-          generate_narration: opts.generateNarration,
-          provider: llmConfig.provider,
-          api_key: llmConfig.api_key,
-          model: llmConfig.model,
-          base_url: llmConfig.base_url
-        })
+      const result = await generateLessonRequest({
+        topic: opts.topic,
+        audience: opts.audience,
+        duration: opts.duration,
+        difficulty: opts.difficulty,
+        teaching_style: opts.teachingStyle,
+        include_quizzes: opts.includeQuizzes,
+        generate_narration: opts.generateNarration,
+        provider: llmConfig.provider,
+        api_key: llmConfig.api_key,
+        model: llmConfig.model,
+        base_url: llmConfig.base_url
       });
 
-      if (!response.ok) {
-        const errBody = await response.json().catch(() => null);
-        setGenerationError(errBody?.detail || `Lesson generation failed (HTTP ${response.status}). Verify the backend and Ollama are running.`);
-        return;
-      }
-
-      const result = await response.json();
       if (!Array.isArray(result.slides) || result.slides.length === 0) {
         setGenerationError("AI response did not include any slides.");
         return;
@@ -330,7 +347,11 @@ export const LessonBuilder = ({ onLoadDiagram, history = [], onSaveLesson, lesso
       setOptions(DEFAULT_OPTIONS);
       onSaveLesson?.(generated);
     } catch (err) {
-      setGenerationError("Error generating AI lesson. Verify backend is running.");
+      setGenerationError(
+        err instanceof ApiError
+          ? err.message
+          : "Error generating AI lesson. Verify the backend and Ollama are running."
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -347,13 +368,13 @@ export const LessonBuilder = ({ onLoadDiagram, history = [], onSaveLesson, lesso
   if (!lesson) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-6 p-6 h-full select-none overflow-y-auto">
-        <div className="p-4 bg-gradient-to-br from-[#00f0ff] to-[#ff007f] rounded-2xl shadow-glow-blue animate-pulse">
-          <Sparkles className="w-8 h-8 text-black" />
+        <div className="p-4 bg-gradient-colorful rounded-2xl">
+          <Sparkles className="w-8 h-8 text-white" />
         </div>
         <div className="text-center flex flex-col gap-2 max-w-lg">
-          <h2 className="text-2xl font-extrabold text-white tracking-wide">AI Lesson Generator</h2>
-          <p className="text-sm text-gray-400">
-            Describe a computer science topic and AUTOMETA will draft slides, diagrams, animations, a quiz, narration, a summary, and a worksheet.
+          <h2 className="text-2xl font-black text-white tracking-wide uppercase">AI Lesson Generator</h2>
+          <p className="text-sm text-slate-400">
+            Describe a computer science topic and AUTOMETA will draft slides, diagrams, simulations, quizzes, narrations, and worksheets.
           </p>
         </div>
 
@@ -374,7 +395,7 @@ export const LessonBuilder = ({ onLoadDiagram, history = [], onSaveLesson, lesso
               key={prompt}
               onClick={() => generateAILesson({ ...options, topic: prompt })}
               disabled={isGenerating}
-              className="px-3 py-1.5 rounded-full text-[11px] font-bold border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-[#00f0ff]/40 transition-colors cursor-pointer disabled:opacity-40"
+              className="px-3 py-1.5 rounded-full text-[11px] font-bold border border-white/5 bg-[#0c1223]/40 text-slate-300 hover:text-white hover:border-[#00e5a3]/40 transition-colors cursor-pointer disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-[#00e5a3]/30"
             >
               {prompt}
             </button>
@@ -382,16 +403,33 @@ export const LessonBuilder = ({ onLoadDiagram, history = [], onSaveLesson, lesso
         </div>
 
         {isGenerating && (
-          <p className="text-[11px] text-gray-500 animate-pulse">Thinking... local models can take a minute to draft a full lesson.</p>
-        )}
-        {generationError && (
-          <p className="text-[11px] text-red-400 flex items-center gap-1.5 max-w-xl text-center">
-            <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {generationError}
-          </p>
+          <div className="w-full max-w-xl bg-[#0c1223]/50 border border-white/5 rounded-2xl p-6 flex flex-col gap-4 animate-pulse shadow-md">
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-[#00e5a3] to-[#8b5cf6] animate-spin shrink-0" />
+              <span className="text-xs font-bold text-slate-300">AUTOMETA AI Engine</span>
+            </div>
+            <div className="flex flex-col gap-2">
+              <div className="h-4 bg-white/10 rounded w-3/4 animate-pulse" />
+              <div className="h-3 bg-white/5 rounded w-1/2 animate-pulse" />
+            </div>
+            <p className="text-[11px] font-medium text-slate-400 mt-2 font-mono flex items-center gap-1.5">
+              <span className="text-[#00e5a3] animate-pulse">●</span> {PHASES[loadingPhase]}
+            </p>
+          </div>
         )}
 
-        <label className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-gray-300 cursor-pointer transition-colors mt-2">
-          <FileUp className="w-3.5 h-3.5" /> or import an existing .lesson file
+        {generationError && (
+          <div className="w-full max-w-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 rounded-xl px-4 py-3 text-xs flex items-start gap-3 animate-fade-in">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <span className="font-bold block mb-0.5">Generation Failed</span>
+              <span>{generationError}</span>
+            </div>
+          </div>
+        )}
+
+        <label className="flex items-center gap-1.5 text-[11px] text-slate-500 hover:text-slate-300 cursor-pointer transition-colors mt-2 focus-within:ring-2 focus-within:ring-[#00e5a3]/30 p-1 rounded">
+          <FileUp className="w-3.5 h-3.5 text-[#00e5a3]" /> or import an existing .lesson file
           <input type="file" accept=".lesson" onChange={importLesson} className="hidden" />
         </label>
 
@@ -412,21 +450,21 @@ export const LessonBuilder = ({ onLoadDiagram, history = [], onSaveLesson, lesso
     <div className="flex-1 flex flex-col gap-6 p-6 h-full overflow-y-auto select-none">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-extrabold text-white tracking-wide flex items-center gap-2">
-          <BookOpen className="w-5 h-5 text-[#00f0ff]" /> Lesson Builder
+        <h2 className="text-sm font-black uppercase tracking-widest text-slate-100 flex items-center gap-2">
+          <BookOpen className="w-5 h-5 text-[#00e5a3]" /> Lesson Builder
         </h2>
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={exportLesson} className="flex items-center gap-1.5 text-xs">
             <FileDown className="w-3.5 h-3.5" /> Export .lesson
           </Button>
-          <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all duration-200 glass-button text-gray-200 hover:text-white cursor-pointer">
-            <FileUp className="w-3.5 h-3.5 text-gray-400" /> Import
+          <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all duration-200 glass-button text-slate-200 hover:text-white cursor-pointer">
+            <FileUp className="w-3.5 h-3.5 text-slate-400" /> Import
             <input type="file" accept=".lesson" onChange={importLesson} className="hidden" />
           </label>
           <button
             onClick={startNewLesson}
             title="Start a new lesson"
-            className="flex items-center gap-1 text-gray-400 hover:text-[#00f0ff] transition-colors cursor-pointer border-none bg-transparent p-1.5"
+            className="flex items-center gap-1 text-slate-400 hover:text-[#00e5a3] transition-colors cursor-pointer border-none bg-transparent p-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00e5a3]/30"
           >
             <Plus className="w-4 h-4" />
           </button>
@@ -434,10 +472,10 @@ export const LessonBuilder = ({ onLoadDiagram, history = [], onSaveLesson, lesso
       </div>
 
       {/* Prompt recap */}
-      <div className="bg-white/5 p-5 rounded-2xl border border-white/5 flex flex-col gap-2">
-        <h3 className="text-xs uppercase tracking-widest text-gray-400 font-black">Prompt</h3>
-        <p className="text-sm text-gray-200">Teach {lesson.topic} to {lesson.audience}.</p>
-        <ul className="flex flex-col gap-1 text-xs text-gray-400">
+      <div className="bg-white/5 p-5 rounded-2xl border border-white/5 flex flex-col gap-2 shadow-sm">
+        <h3 className="text-[10px] uppercase tracking-widest text-slate-400 font-black">Prompt</h3>
+        <p className="text-sm text-slate-200">Teach {lesson.topic} to {lesson.audience}.</p>
+        <ul className="flex flex-col gap-1 text-xs text-slate-400">
           {lesson.duration && <li>Duration: {lesson.duration}</li>}
           {lesson.difficulty && <li>Difficulty: {lesson.difficulty}</li>}
           {lesson.teachingStyle && <li>Teaching Style: {lesson.teachingStyle}.</li>}
@@ -447,9 +485,9 @@ export const LessonBuilder = ({ onLoadDiagram, history = [], onSaveLesson, lesso
       </div>
 
       {/* AI Output header */}
-      <div className="flex items-center gap-2 text-[#00f0ff]">
-        <CheckCircle2 className="w-5 h-5" />
-        <span className="text-sm font-black uppercase tracking-widest">Lesson Generated Successfully</span>
+      <div className="flex items-center gap-2 text-[#00e5a3]">
+        <CheckCircle2 className="w-5 h-5 animate-pulse" />
+        <span className="text-xs font-black uppercase tracking-widest">Lesson Generated Successfully</span>
       </div>
 
       {/* Stats grid */}
@@ -468,28 +506,28 @@ export const LessonBuilder = ({ onLoadDiagram, history = [], onSaveLesson, lesso
 
       {/* Learning Objectives */}
       {lesson.learningObjectives.length > 0 && (
-        <div className="bg-white/5 p-5 rounded-2xl border border-white/5 flex flex-col gap-3">
-          <h3 className="text-xs uppercase tracking-widest text-[#00f0ff] font-black flex items-center gap-1.5">
-            <Target className="w-3.5 h-3.5" /> <span>Learning Objectives</span>
+        <div className="bg-white/5 p-5 rounded-2xl border border-white/5 flex flex-col gap-3 shadow-sm">
+          <h3 className="text-[10px] uppercase tracking-widest text-[#00e5a3] font-black flex items-center gap-1.5">
+            <Target className="w-3.5 h-3.5 text-[#00e5a3]" /> <span>Learning Objectives</span>
           </h3>
-          <ol className="flex flex-col gap-1.5 list-decimal list-inside text-sm text-gray-200">
+          <ol className="flex flex-col gap-1.5 list-decimal list-inside text-sm text-slate-200 leading-relaxed">
             {lesson.learningObjectives.map((obj, idx) => <li key={idx}>{obj}</li>)}
           </ol>
         </div>
       )}
 
       {/* Lesson Structure */}
-      <div className="bg-white/5 p-5 rounded-2xl border border-white/5 flex flex-col gap-3">
-        <h3 className="text-xs uppercase tracking-widest text-[#00f0ff] font-black flex items-center gap-1.5">
-          <Layers className="w-3.5 h-3.5" /> <span>Lesson Structure</span>
+      <div className="bg-white/5 p-5 rounded-2xl border border-white/5 flex flex-col gap-3 shadow-sm">
+        <h3 className="text-[10px] uppercase tracking-widest text-[#00e5a3] font-black flex items-center gap-1.5">
+          <Layers className="w-3.5 h-3.5 text-[#00e5a3]" /> <span>Lesson Structure</span>
         </h3>
         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-2">
           {lesson.slides.map((slide, idx) => (
             <div key={idx} className="flex items-center gap-1.5">
-              <span className="px-2.5 py-1 rounded-lg bg-black/40 border border-white/10 text-xs font-bold text-gray-200">
+              <span className="px-2.5 py-1 rounded-lg bg-black/40 border border-white/10 text-xs font-bold text-slate-200">
                 {idx + 1}. {slide.title}
               </span>
-              {idx < lesson.slides.length - 1 && <ArrowRight className="w-3.5 h-3.5 text-gray-600 shrink-0" />}
+              {idx < lesson.slides.length - 1 && <ArrowRight className="w-3.5 h-3.5 text-slate-600 shrink-0" />}
             </div>
           ))}
         </div>
@@ -497,36 +535,36 @@ export const LessonBuilder = ({ onLoadDiagram, history = [], onSaveLesson, lesso
 
       {/* Generated Slides */}
       <div className="flex flex-col gap-4">
-        <h3 className="text-xs uppercase tracking-widest text-gray-400 font-black">Generated Slides</h3>
+        <h3 className="text-[10px] uppercase tracking-widest text-slate-400 font-black">Generated Slides</h3>
         {lesson.slides.map((slide, idx) => (
-          <div key={idx} className="bg-white/5 p-6 rounded-2xl border border-white/5 flex flex-col gap-4">
-            <h2 className="text-lg font-extrabold text-white tracking-wide border-b border-white/10 pb-3 flex items-center gap-2">
-              <span className="text-[#00f0ff]">{idx + 1}.</span> {slide.title}
+          <div key={idx} className="bg-white/5 p-6 rounded-2xl border border-white/5 flex flex-col gap-4 shadow-sm">
+            <h2 className="text-base font-extrabold text-white tracking-wide border-b border-white/5 pb-3 flex items-center gap-2">
+              <span className="text-[#00e5a3] font-mono">{idx + 1}.</span> {slide.title}
             </h2>
             <MarkdownRenderer text={slide.markdown} />
 
             {slide.narration && (
               <div className="flex flex-col gap-1.5 border-t border-white/5 pt-3">
-                <span className="text-[10px] uppercase tracking-widest text-[#00f0ff] font-black flex items-center gap-1.5">
-                  <Volume2 className="w-3 h-3" /> Narration
+                <span className="text-[9px] uppercase tracking-widest text-[#00e5a3] font-black flex items-center gap-1.5">
+                  <Volume2 className="w-3 h-3 text-[#00e5a3]" /> Narration
                 </span>
-                <p className="text-sm text-gray-300 italic leading-relaxed">{slide.narration}</p>
+                <p className="text-xs text-slate-300 italic leading-relaxed">{slide.narration}</p>
               </div>
             )}
 
             {slide.diagram && (
               <div className="flex flex-col gap-2 border-t border-white/5 pt-3">
-                <span className="text-[10px] uppercase tracking-widest text-[#00f0ff] font-black flex items-center gap-1.5">
-                  <Workflow className="w-3 h-3" /> Automaton Diagram ({slide.diagram.type})
+                <span className="text-[9px] uppercase tracking-widest text-[#00e5a3] font-black flex items-center gap-1.5">
+                  <Workflow className="w-3 h-3 text-[#00e5a3]" /> Automaton Diagram ({slide.diagram.type})
                 </span>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-slate-400">
                   {slide.diagram.nodes.length} states, {slide.diagram.edges.length} transitions
                   {slide.diagram.exampleInput ? ` — example input "${slide.diagram.exampleInput}"` : ''}
                 </p>
                 <Button
                   onClick={() => onLoadDiagram?.(slide.diagram as SlideDiagram)}
                   disabled={!onLoadDiagram}
-                  className="w-fit flex items-center gap-1.5 text-xs"
+                  className="w-fit flex items-center gap-1.5 text-xs !bg-[#00e5a3] !text-black hover:opacity-90 transition-opacity !font-bold"
                 >
                   <Workflow className="w-3.5 h-3.5" /> Load into Editor &amp; Animate
                 </Button>
@@ -535,21 +573,21 @@ export const LessonBuilder = ({ onLoadDiagram, history = [], onSaveLesson, lesso
 
             {slide.quizQuestion && (
               <div className="flex flex-col gap-3 border-t border-white/5 pt-3">
-                <span className="text-[10px] uppercase tracking-widest text-[#ff007f] font-black flex items-center gap-1.5">
-                  <HelpCircle className="w-3 h-3" /> Concept Check Quiz
+                <span className="text-[9px] uppercase tracking-widest text-[#8b5cf6] font-black flex items-center gap-1.5">
+                  <HelpCircle className="w-3 h-3 text-[#8b5cf6]" /> Concept Check Quiz
                 </span>
-                <p className="text-sm text-white font-bold">{slide.quizQuestion}</p>
+                <p className="text-sm text-white font-semibold">{slide.quizQuestion}</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {slide.quizOptions?.map((opt, optIdx) => (
                     <button
                       key={optIdx}
                       onClick={() => setSelectedAnswers((prev) => ({ ...prev, [idx]: optIdx }))}
-                      className={`text-left p-3.5 rounded-xl border text-xs font-bold transition-all cursor-pointer bg-black/40 ${
+                      className={`text-left p-3.5 rounded-xl border text-xs font-bold transition-all duration-300 cursor-pointer bg-black/40 focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/30 ${
                         selectedAnswers[idx] === optIdx
                           ? optIdx === slide.quizAnswer
-                            ? 'border-green-500/50 bg-green-500/10 text-green-400'
-                            : 'border-red-500/50 bg-red-500/10 text-red-400'
-                          : 'border-white/5 text-gray-300 hover:border-white/15 hover:text-white'
+                            ? 'border-green-500/50 bg-green-500/10 text-green-400 font-bold'
+                            : 'border-red-500/50 bg-red-500/10 text-red-400 font-bold'
+                          : 'border-white/5 text-slate-300 hover:border-[#8b5cf6]/30 hover:text-white'
                       }`}
                     >
                       {opt}
@@ -557,13 +595,13 @@ export const LessonBuilder = ({ onLoadDiagram, history = [], onSaveLesson, lesso
                   ))}
                 </div>
                 {selectedAnswers[idx] !== undefined && (
-                  <div className="flex items-center gap-2 text-xs font-bold">
+                  <div className="flex items-center gap-2 text-xs font-bold mt-1">
                     {selectedAnswers[idx] === slide.quizAnswer ? (
                       <span className="text-green-400 flex items-center gap-1">
-                        <CheckCircle2 className="w-4 h-4" /> Correct Answer! Great job.
+                        <CheckCircle2 className="w-4 h-4 animate-bounce" /> Correct Answer! Great job.
                       </span>
                     ) : (
-                      <span className="text-red-400 flex items-center gap-1">
+                      <span className="text-red-400 flex items-center gap-1 animate-shake">
                         <AlertCircle className="w-4 h-4" /> Try again! That is incorrect.
                       </span>
                     )}
@@ -577,36 +615,36 @@ export const LessonBuilder = ({ onLoadDiagram, history = [], onSaveLesson, lesso
 
       {/* Lesson Summary */}
       {lesson.summary && (
-        <div className="bg-white/5 p-6 rounded-2xl border border-white/5 flex flex-col gap-3">
-          <h3 className="text-xs uppercase tracking-widest text-[#00f0ff] font-black flex items-center gap-1.5">
-            <BookOpen className="w-3.5 h-3.5" /> <span>Lesson Summary</span>
+        <div className="bg-white/5 p-6 rounded-2xl border border-white/5 flex flex-col gap-3 shadow-sm">
+          <h3 className="text-[10px] uppercase tracking-widest text-[#00e5a3] font-black flex items-center gap-1.5">
+            <BookOpen className="w-3.5 h-3.5 text-[#00e5a3]" /> <span>Lesson Summary</span>
           </h3>
-          <p className="text-sm text-gray-300 leading-relaxed">{lesson.summary}</p>
+          <p className="text-sm text-slate-300 leading-relaxed">{lesson.summary}</p>
         </div>
       )}
 
       {/* Worksheet */}
       {lesson.worksheet.length > 0 && (
-        <div className="bg-white/5 p-6 rounded-2xl border border-white/5 flex flex-col gap-4">
+        <div className="bg-white/5 p-6 rounded-2xl border border-white/5 flex flex-col gap-4 shadow-sm">
           <div className="flex items-center justify-between border-b border-white/5 pb-2 mb-2">
-            <h3 className="text-xs uppercase tracking-widest text-[#ff007f] font-black flex items-center gap-1.5">
-              <ClipboardList className="w-3.5 h-3.5" /> <span>Worksheet</span>
+            <h3 className="text-[10px] uppercase tracking-widest text-[#8b5cf6] font-black flex items-center gap-1.5">
+              <ClipboardList className="w-3.5 h-3.5 text-[#8b5cf6]" /> <span>Worksheet</span>
             </h3>
             <button
               onClick={downloadWorksheetAsMarkdown}
-              className="flex items-center gap-1 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded px-2.5 py-1 text-[10px] font-bold cursor-pointer transition-all"
+              className="flex items-center gap-1 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded px-2.5 py-1 text-[10px] font-bold cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-[#8b5cf6]/30"
             >
-              <FileDown className="w-3 h-3 text-[#ff007f]" /> Download MD
+              <FileDown className="w-3 h-3 text-[#8b5cf6]" /> Download MD
             </button>
           </div>
           <ol className="flex flex-col gap-3 list-decimal list-inside">
             {lesson.worksheet.map((item, idx) => (
-              <li key={idx} className="text-sm text-gray-200">
+              <li key={idx} className="text-sm text-slate-200 leading-relaxed">
                 {item.question}
                 {item.answer && (
-                  <details className="mt-1 ml-4">
-                    <summary className="text-xs text-[#00f0ff] cursor-pointer font-bold">Show answer</summary>
-                    <p className="text-xs text-gray-400 mt-1">{item.answer}</p>
+                  <details className="mt-1.5 ml-4">
+                    <summary className="text-xs text-[#00e5a3] cursor-pointer font-bold select-none hover:underline focus:outline-none">Show answer</summary>
+                    <p className="text-xs text-slate-400 mt-1.5 bg-black/30 border border-white/5 p-3 rounded-lg leading-relaxed">{item.answer}</p>
                   </details>
                 )}
               </li>
@@ -616,9 +654,9 @@ export const LessonBuilder = ({ onLoadDiagram, history = [], onSaveLesson, lesso
       )}
 
       {/* Export Package */}
-      <div className="bg-white/5 p-6 rounded-2xl border border-white/5 flex flex-col gap-3">
-        <h3 className="text-xs uppercase tracking-widest text-gray-400 font-black flex items-center gap-1.5">
-          <Package className="w-3.5 h-3.5" /> <span>Export Package</span>
+      <div className="bg-white/5 p-6 rounded-2xl border border-white/5 flex flex-col gap-3 shadow-sm">
+        <h3 className="text-[10px] uppercase tracking-widest text-slate-400 font-black flex items-center gap-1.5">
+          <Package className="w-3.5 h-3.5 text-[#00e5a3]" /> <span>Export Package</span>
         </h3>
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" onClick={exportLesson} className="flex items-center gap-1.5 text-xs">
@@ -633,9 +671,9 @@ export const LessonBuilder = ({ onLoadDiagram, history = [], onSaveLesson, lesso
       </div>
 
       {/* AI Lesson Generator Tool (chat-style follow-up) */}
-      <div className="bg-[#0c101d] p-5 rounded-2xl border border-[#00f0ff]/10 flex flex-col gap-3 shadow-2xl">
+      <div className="bg-[#0b121e] p-5 rounded-2xl border border-[#00e5a3]/10 flex flex-col gap-3 shadow-2xl">
         <div className="flex items-center gap-2 text-xs font-bold text-white uppercase tracking-wider">
-          <Sparkles className="w-4 h-4 text-[#00f0ff] animate-pulse" />
+          <Sparkles className="w-4 h-4 text-[#00e5a3] animate-pulse" />
           <span>Generate Another Lesson</span>
         </div>
         <GenerationForm
@@ -646,9 +684,13 @@ export const LessonBuilder = ({ onLoadDiagram, history = [], onSaveLesson, lesso
           submitLabel="Generate Slide Deck"
         />
         {generationError && (
-          <p className="text-[11px] text-red-400 flex items-center gap-1.5">
-            <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {generationError}
-          </p>
+          <div className="bg-rose-500/10 border border-rose-500/20 text-rose-300 rounded-xl px-4 py-3 text-xs flex items-start gap-3 animate-fade-in">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <span className="font-bold block mb-0.5">Generation Failed</span>
+              <span>{generationError}</span>
+            </div>
+          </div>
         )}
       </div>
 

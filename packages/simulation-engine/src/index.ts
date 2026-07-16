@@ -3,6 +3,7 @@ export interface AutomatonNode {
   label: string;
   isStart: boolean;
   isAccept: boolean;
+  isReject?: boolean;
 }
 
 export interface AutomatonEdge {
@@ -15,7 +16,36 @@ export interface AutomatonEdge {
 export interface Automaton {
   nodes: AutomatonNode[];
   edges: AutomatonEdge[];
+  /** Present once persisted through `migrateAutomatonSchema`/`stampAutomatonSchema`; absent on in-memory automata built by editor conversions. */
+  schemaVersion?: number;
 }
+
+/**
+ * Automaton schema version. Bump this whenever the persisted shape of
+ * `Automaton` changes, and add a branch to `migrateAutomatonSchema` for the
+ * previous shape — mirrors the pattern in
+ * apps/web/src/utils/projectFormat.ts.
+ */
+export const AUTOMATON_SCHEMA_VERSION = 1;
+
+export const stampAutomatonSchema = (automaton: Automaton): Automaton => ({
+  ...automaton,
+  schemaVersion: AUTOMATON_SCHEMA_VERSION,
+});
+
+/**
+ * Parses automaton JSON blobs written by this app, including data from
+ * before schema versioning existed (no `schemaVersion` field).
+ */
+export const migrateAutomatonSchema = (value: unknown): Automaton => {
+  if (!value || typeof value !== 'object') throw new Error('Automaton data must be a JSON object.');
+  const data = value as Record<string, unknown>;
+  if (!Array.isArray(data.nodes) || !Array.isArray(data.edges)) throw new Error('Automaton data must contain nodes and edges arrays.');
+  if (data.schemaVersion !== undefined && data.schemaVersion !== AUTOMATON_SCHEMA_VERSION) {
+    throw new Error(`Unsupported automaton schema version: ${String(data.schemaVersion)}.`);
+  }
+  return { nodes: data.nodes as AutomatonNode[], edges: data.edges as AutomatonEdge[], schemaVersion: AUTOMATON_SCHEMA_VERSION };
+};
 
 export interface SimulationEvent {
   time: number;
@@ -25,6 +55,14 @@ export interface SimulationEvent {
   edgeId?: string;            // edge traversed
   symbol?: string;            // symbol read
   symbolIndex?: number;       // character index in the input string
+  // TM (single-tape)
+  tape?: Record<number, string>;
+  headIndex?: number;
+  // TM (multi-tape, tapeCount > 1) — one entry per tape, in parallel arrays
+  tapes?: Record<number, string>[];
+  headIndices?: number[];
+  // PDA
+  stack?: string[];
 }
 
 export interface SimulationResult {
@@ -37,6 +75,44 @@ export const isEpsilon = (symbol: string): boolean => {
   const s = symbol.trim().toLowerCase();
   return s === '' || s === 'ε' || s === 'epsilon' || s === 'λ' || s === 'lambda';
 };
+
+/**
+ * Epsilon closure of a set of states, also reporting which epsilon edges were
+ * traversed to reach it (used by the NFA simulator to animate those edges).
+ */
+export const getEpsilonClosureDetailed = (
+  automaton: Automaton,
+  states: Iterable<string>
+): { closure: Set<string>; traversedEdges: Set<string> } => {
+  const closure = new Set<string>(states);
+  const queue = Array.from(closure);
+  const traversedEdges = new Set<string>();
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    const epsilonEdges = automaton.edges.filter(e =>
+      e.source === current &&
+      e.symbols.some(isEpsilon)
+    );
+
+    for (const edge of epsilonEdges) {
+      if (!closure.has(edge.target)) {
+        closure.add(edge.target);
+        queue.push(edge.target);
+        traversedEdges.add(edge.id);
+      }
+    }
+  }
+
+  return { closure, traversedEdges };
+};
+
+/**
+ * Epsilon closure of a set of states. The canonical implementation shared by
+ * the NFA simulator, subset construction, and the walkthrough builders.
+ */
+export const getEpsilonClosure = (automaton: Automaton, states: Iterable<string>): Set<string> =>
+  getEpsilonClosureDetailed(automaton, states).closure;
 
 /**
  * Simulates a Deterministic Finite Automaton (DFA)
@@ -138,35 +214,9 @@ export const simulateNFA = (automaton: Automaton, inputString: string): Simulati
     return { accepted: false, events: [{ time: 0, event: 'reject', symbolIndex: 0 }] };
   }
 
-  // Epsilon closure helper
-  const getEpsilonClosure = (states: Set<string>): { closure: Set<string>, traversedEdges: Set<string> } => {
-    const closure = new Set<string>(states);
-    const queue = Array.from(states);
-    const traversedEdges = new Set<string>();
-
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-      // Find all epsilon transitions from current
-      const epsilonEdges = automaton.edges.filter(e => 
-        e.source === current && 
-        e.symbols.some(isEpsilon)
-      );
-
-      for (const edge of epsilonEdges) {
-        if (!closure.has(edge.target)) {
-          closure.add(edge.target);
-          queue.push(edge.target);
-          traversedEdges.add(edge.id);
-        }
-      }
-    }
-
-    return { closure, traversedEdges };
-  };
-
   // 1. Initial State Set (Epsilon closure of start state)
   const initialSet = new Set<string>([startNode.id]);
-  const { closure: startClosure, traversedEdges: startEpsilonEdges } = getEpsilonClosure(initialSet);
+  const { closure: startClosure, traversedEdges: startEpsilonEdges } = getEpsilonClosureDetailed(automaton, initialSet);
   let activeStates = startClosure;
 
   events.push({
@@ -228,7 +278,7 @@ export const simulateNFA = (automaton: Automaton, inputString: string): Simulati
     }
 
     // Get epsilon closure of the newly reached states
-    const { closure: nextClosure, traversedEdges: nextEpsilonEdges } = getEpsilonClosure(nextStates);
+    const { closure: nextClosure, traversedEdges: nextEpsilonEdges } = getEpsilonClosureDetailed(automaton, nextStates);
     activeStates = nextClosure;
 
     events.push({
@@ -451,47 +501,61 @@ export interface PdaStepState {
   inputIndex: number;
 }
 
+/** Whether a PDA path counts as accepting by reaching a designated accept state, or by emptying its stack, once the input is fully consumed. */
+export type PdaAcceptanceMode = 'final-state' | 'empty-stack';
+
+interface PdaPathNode {
+  stateId: string;
+  inputIndex: number;
+  stack: string[];
+  history: { event: 'enter_state' | 'transition', stateId?: string, edgeId?: string, symbol?: string, symbolIndex: number, stackState: string[] }[];
+}
+
+const parsePdaTransitionLabel = (label: string) => {
+  const parts = label.split('->');
+  if (parts.length !== 2) return null;
+
+  const leftParts = parts[0].split(',');
+  if (leftParts.length !== 2) return null;
+
+  const inputSymbol = leftParts[0].trim();
+  const popSymbol = leftParts[1].trim();
+  const pushSymbols = parts[1].trim()
+    .split(/\s+/)
+    .map(s => s.trim())
+    .filter(s => s !== '' && !isEpsilon(s));
+
+  return { inputSymbol, popSymbol, pushSymbols };
+};
+
+const isPdaPathAccepting = (path: PdaPathNode, automaton: Automaton, inputString: string, acceptanceMode: PdaAcceptanceMode): boolean => {
+  if (path.inputIndex !== inputString.length) return false;
+  if (acceptanceMode === 'empty-stack') return path.stack.length === 0;
+  return !!automaton.nodes.find(n => n.id === path.stateId)?.isAccept;
+};
+
 /**
- * Simulates a Pushdown Automaton (PDA)
- * Edges labels format: "input, pop -> push" (e.g. "a, Z -> A Z" or "b, A -> ε")
+ * Shared DFS exploration behind `simulatePDA`/`simulatePDAAllBranches`.
+ * `collectAllLeaves: false` reproduces the original single-path behavior
+ * exactly (stops the instant any accepting configuration is found, so later
+ * branches are never explored — matching `simulatePDA`'s historical
+ * contract). `collectAllLeaves: true` never short-circuits on acceptance;
+ * every accepting configuration and every dead end (no further valid
+ * transition) is instead recorded as one leaf of the exploration tree, up to
+ * the same `maxSteps` budget.
  */
-export const simulatePDA = (automaton: Automaton, inputString: string, initialStackSymbol: string = 'Z'): SimulationResult => {
-  let time = 0;
-
+const explorePDA = (
+  automaton: Automaton,
+  inputString: string,
+  initialStackSymbol: string,
+  acceptanceMode: PdaAcceptanceMode,
+  collectAllLeaves: boolean
+): { successfulPath: PdaPathNode | null; lastVisitedPath: PdaPathNode | null; leaves: { path: PdaPathNode; accepted: boolean }[] } => {
   const startNode = automaton.nodes.find(n => n.isStart);
-  if (!startNode) {
-    return { accepted: false, events: [{ time: 0, event: 'reject', symbolIndex: 0 }] };
-  }
+  const leaves: { path: PdaPathNode; accepted: boolean }[] = [];
+  if (!startNode) return { successfulPath: null, lastVisitedPath: null, leaves };
 
-  const parsePdaTransition = (label: string) => {
-    const parts = label.split('->');
-    if (parts.length !== 2) return null;
-
-    const leftParts = parts[0].split(',');
-    if (leftParts.length !== 2) return null;
-
-    const inputSymbol = leftParts[0].trim();
-    const popSymbol = leftParts[1].trim();
-    const pushSymbols = parts[1].trim()
-      .split(/\s+/)
-      .map(s => s.trim())
-      .filter(s => s !== '' && !isEpsilon(s));
-
-    return {
-      inputSymbol,
-      popSymbol,
-      pushSymbols
-    };
-  };
-
-  interface PathNode {
-    stateId: string;
-    inputIndex: number;
-    stack: string[];
-    history: { event: 'enter_state' | 'transition', stateId?: string, edgeId?: string, symbol?: string, symbolIndex: number, stackState: string[] }[];
-  }
-
-  const queue: PathNode[] = [{
+  const queue: PdaPathNode[] = [{
     stateId: startNode.id,
     inputIndex: 0,
     stack: [initialStackSymbol],
@@ -502,24 +566,26 @@ export const simulatePDA = (automaton: Automaton, inputString: string, initialSt
 
   const maxSteps = 1000;
   let steps = 0;
-  let successfulPath: PathNode | null = null;
-  let lastFailedPath: PathNode | null = null;
+  let successfulPath: PdaPathNode | null = null;
+  let lastVisitedPath: PdaPathNode | null = null;
 
   while (queue.length > 0 && steps++ < maxSteps) {
     const current = queue.pop()!;
-    lastFailedPath = current;
+    lastVisitedPath = current;
 
-    const currentNode = automaton.nodes.find(n => n.id === current.stateId);
-    if (current.inputIndex === inputString.length && currentNode?.isAccept) {
-      successfulPath = current;
-      break;
+    if (isPdaPathAccepting(current, automaton, inputString, acceptanceMode)) {
+      if (!successfulPath) successfulPath = current;
+      if (!collectAllLeaves) break;
+      leaves.push({ path: current, accepted: true });
+      continue;
     }
 
     const outgoingEdges = automaton.edges.filter(e => e.source === current.stateId);
+    let branched = false;
 
     for (const edge of outgoingEdges) {
       for (const rawSym of edge.symbols) {
-        const trans = parsePdaTransition(rawSym);
+        const trans = parsePdaTransitionLabel(rawSym);
         if (!trans) continue;
 
         const { inputSymbol, popSymbol, pushSymbols } = trans;
@@ -554,16 +620,19 @@ export const simulatePDA = (automaton: Automaton, inputString: string, initialSt
           stack: nextStack,
           history: nextHistory
         });
+        branched = true;
       }
     }
+
+    if (!branched && collectAllLeaves) leaves.push({ path: current, accepted: false });
   }
 
-  const finalPath = successfulPath || lastFailedPath;
-  if (!finalPath) {
-    return { accepted: false, events: [{ time: 0, event: 'reject', symbolIndex: 0 }] };
-  }
+  return { successfulPath, lastVisitedPath, leaves };
+};
 
-  const mappedEvents: any[] = finalPath.history.map((h) => ({
+const mapPdaPathToEvents = (path: PdaPathNode, accepted: boolean): SimulationEvent[] => {
+  let time = 0;
+  const mappedEvents: SimulationEvent[] = path.history.map((h) => ({
     time: time++,
     event: h.event,
     stateId: h.stateId,
@@ -573,19 +642,69 @@ export const simulatePDA = (automaton: Automaton, inputString: string, initialSt
     stack: h.stackState
   }));
 
-  const accepted = !!successfulPath;
   mappedEvents.push({
     time: time++,
     event: accepted ? 'accept' : 'reject',
-    stateId: finalPath.stateId,
-    symbolIndex: finalPath.inputIndex,
-    stack: finalPath.stack
+    stateId: path.stateId,
+    symbolIndex: path.inputIndex,
+    stack: path.stack
   });
+
+  return mappedEvents;
+};
+
+/**
+ * Simulates a Pushdown Automaton (PDA)
+ * Edges labels format: "input, pop -> push" (e.g. "a, Z -> A Z" or "b, A -> ε")
+ */
+export const simulatePDA = (automaton: Automaton, inputString: string, initialStackSymbol: string = 'Z', acceptanceMode: PdaAcceptanceMode = 'final-state'): SimulationResult => {
+  const startNode = automaton.nodes.find(n => n.isStart);
+  if (!startNode) {
+    return { accepted: false, events: [{ time: 0, event: 'reject', symbolIndex: 0 }] };
+  }
+
+  const { successfulPath, lastVisitedPath } = explorePDA(automaton, inputString, initialStackSymbol, acceptanceMode, false);
+
+  const finalPath = successfulPath || lastVisitedPath;
+  if (!finalPath) {
+    return { accepted: false, events: [{ time: 0, event: 'reject', symbolIndex: 0 }] };
+  }
+
+  const accepted = !!successfulPath;
 
   return {
     accepted,
-    events: mappedEvents
+    events: mapPdaPathToEvents(finalPath, accepted)
   };
+};
+
+/** One fully-explored PDA path — accepted or a dead end — returned by `simulatePDAAllBranches`. */
+export interface PdaBranchResult {
+  accepted: boolean;
+  events: SimulationEvent[];
+}
+
+/**
+ * Explores every branch of a (possibly nondeterministic) PDA's execution, up
+ * to the same step budget `simulatePDA` uses internally, and returns each
+ * complete path found — not just the first success or the last path visited.
+ * The live canvas animation keeps using `simulatePDA` unchanged; this is a
+ * read-only, additional view onto the same exploration for visualization
+ * (e.g. listing/comparing branches) so it can't affect simulation playback.
+ */
+export const simulatePDAAllBranches = (
+  automaton: Automaton,
+  inputString: string,
+  initialStackSymbol: string = 'Z',
+  acceptanceMode: PdaAcceptanceMode = 'final-state'
+): PdaBranchResult[] => {
+  const startNode = automaton.nodes.find(n => n.isStart);
+  if (!startNode) return [{ accepted: false, events: [{ time: 0, event: 'reject', symbolIndex: 0 }] }];
+
+  const { leaves } = explorePDA(automaton, inputString, initialStackSymbol, acceptanceMode, true);
+  if (!leaves.length) return [{ accepted: false, events: [{ time: 0, event: 'reject', symbolIndex: 0 }] }];
+
+  return leaves.map(({ path, accepted }) => ({ accepted, events: mapPdaPathToEvents(path, accepted) }));
 };
 
 /**
@@ -643,7 +762,7 @@ export const simulateTuringMachine = (automaton: Automaton, inputString: string,
     symbolIndex: 0,
     tape: { ...tape },
     headIndex
-  } as any);
+  });
 
   events.push({
     time: time++,
@@ -652,12 +771,16 @@ export const simulateTuringMachine = (automaton: Automaton, inputString: string,
     symbolIndex: 0,
     tape: { ...tape },
     headIndex
-  } as any);
+  });
 
   while (steps++ < maxSteps && !halted) {
     const currentNode = automaton.nodes.find(n => n.id === currentStateId);
     if (currentNode?.isAccept) {
       accepted = true;
+      halted = true;
+      break;
+    }
+    if (currentNode?.isReject) {
       halted = true;
       break;
     }
@@ -701,7 +824,7 @@ export const simulateTuringMachine = (automaton: Automaton, inputString: string,
       symbolIndex: headIndex,
       tape: { ...tape },
       headIndex
-    } as any);
+    });
 
     currentStateId = foundEdge.target;
 
@@ -712,7 +835,7 @@ export const simulateTuringMachine = (automaton: Automaton, inputString: string,
       symbolIndex: headIndex,
       tape: { ...tape },
       headIndex
-    } as any);
+    });
 
     events.push({
       time: time++,
@@ -721,7 +844,7 @@ export const simulateTuringMachine = (automaton: Automaton, inputString: string,
       symbolIndex: headIndex,
       tape: { ...tape },
       headIndex
-    } as any);
+    });
   }
 
   const finalNode = automaton.nodes.find(n => n.id === currentStateId);
@@ -734,10 +857,155 @@ export const simulateTuringMachine = (automaton: Automaton, inputString: string,
     symbolIndex: headIndex,
     tape: { ...tape },
     headIndex
-  } as any);
+  });
 
   return {
     accepted: isFinalAccepted,
     events
   };
+};
+
+/**
+ * Parses a multi-tape TM transition label: `r1,r2,...,rN -> w1,w2,...,wN ; d1,d2,...,dN`
+ * (one transition per edge — see `transitionParser.ts`'s `parseMultiTapeTmTransitionParts`,
+ * the UI-facing counterpart to this simulation-facing parser).
+ */
+const parseMultiTapeTmTransition = (label: string, tapeCount: number) => {
+  const match = label.match(/^\s*(.*?)\s*->\s*(.*?)\s*;\s*(.*?)\s*$/);
+  if (!match) return null;
+
+  const reads = match[1].split(',').map(s => s.trim());
+  const writes = match[2].split(',').map(s => s.trim());
+  const directions = match[3].split(',').map(s => s.trim().toUpperCase());
+
+  if (reads.length !== tapeCount || writes.length !== tapeCount || directions.length !== tapeCount) return null;
+  if (!directions.every(d => d === 'L' || d === 'R' || d === 'S')) return null;
+
+  return { reads, writes, directions: directions as ('L' | 'R' | 'S')[] };
+};
+
+/**
+ * Simulates a multi-tape Turing Machine: `tapeCount` independent tapes/heads
+ * stepped in lockstep by one transition per step. Tape 0 seeds from
+ * `inputString` (the standard convention); every other tape starts blank.
+ * Single-tape `simulateTuringMachine` is untouched — this is a separate
+ * opt-in path used only when a machine declares `tapeCount > 1`.
+ */
+export const simulateMultiTapeTuringMachine = (
+  automaton: Automaton,
+  inputString: string,
+  tapeCount: number,
+  blankSymbol: string = '_'
+): SimulationResult => {
+  const events: SimulationEvent[] = [];
+  let time = 0;
+
+  const startNode = automaton.nodes.find(n => n.isStart);
+  if (!startNode) {
+    return { accepted: false, events: [{ time: 0, event: 'reject', symbolIndex: 0 }] };
+  }
+
+  const tapes: Record<number, string>[] = Array.from({ length: tapeCount }, () => ({}));
+  for (let i = 0; i < inputString.length; i++) tapes[0][i] = inputString[i];
+
+  let currentStateId = startNode.id;
+  const headIndices = Array(tapeCount).fill(0);
+
+  const maxSteps = 1000;
+  let steps = 0;
+  let halted = false;
+  let accepted = false;
+
+  const getTapeChar = (tapeIdx: number, headIdx: number): string => tapes[tapeIdx][headIdx] === undefined ? blankSymbol : tapes[tapeIdx][headIdx];
+  const snapshotTapes = (): Record<number, string>[] => tapes.map(t => ({ ...t }));
+
+  events.push({ time: time++, event: 'enter_state', stateId: currentStateId, symbolIndex: 0, tapes: snapshotTapes(), headIndices: [...headIndices] });
+  events.push({ time: time++, event: 'active_states', activeStateIds: [currentStateId], symbolIndex: 0, tapes: snapshotTapes(), headIndices: [...headIndices] });
+
+  while (steps++ < maxSteps && !halted) {
+    const currentNode = automaton.nodes.find(n => n.id === currentStateId);
+    if (currentNode?.isAccept) { accepted = true; halted = true; break; }
+    if (currentNode?.isReject) { halted = true; break; }
+
+    const currentSymbols = headIndices.map((headIdx, tapeIdx) => getTapeChar(tapeIdx, headIdx));
+    let foundEdge: AutomatonEdge | undefined;
+    let matchTrans: ReturnType<typeof parseMultiTapeTmTransition> = null;
+
+    const outgoingEdges = automaton.edges.filter(e => e.source === currentStateId);
+    for (const edge of outgoingEdges) {
+      for (const sym of edge.symbols) {
+        const trans = parseMultiTapeTmTransition(sym, tapeCount);
+        if (trans && trans.reads.every((r, i) => r === currentSymbols[i])) {
+          foundEdge = edge;
+          matchTrans = trans;
+          break;
+        }
+      }
+      if (foundEdge) break;
+    }
+
+    if (!foundEdge || !matchTrans) { halted = true; break; }
+
+    for (let i = 0; i < tapeCount; i++) {
+      tapes[i][headIndices[i]] = matchTrans.writes[i];
+      if (matchTrans.directions[i] === 'L') headIndices[i]--;
+      else if (matchTrans.directions[i] === 'R') headIndices[i]++;
+    }
+
+    events.push({
+      time: time++,
+      event: 'transition',
+      edgeId: foundEdge.id,
+      symbol: `${currentSymbols.join(',')}->${matchTrans.writes.join(',')};${matchTrans.directions.join(',')}`,
+      symbolIndex: headIndices[0],
+      tapes: snapshotTapes(),
+      headIndices: [...headIndices]
+    });
+
+    currentStateId = foundEdge.target;
+
+    events.push({ time: time++, event: 'enter_state', stateId: currentStateId, symbolIndex: headIndices[0], tapes: snapshotTapes(), headIndices: [...headIndices] });
+    events.push({ time: time++, event: 'active_states', activeStateIds: [currentStateId], symbolIndex: headIndices[0], tapes: snapshotTapes(), headIndices: [...headIndices] });
+  }
+
+  const finalNode = automaton.nodes.find(n => n.id === currentStateId);
+  const isFinalAccepted = accepted || !!finalNode?.isAccept;
+
+  events.push({ time: time++, event: isFinalAccepted ? 'accept' : 'reject', stateId: currentStateId, symbolIndex: headIndices[0], tapes: snapshotTapes(), headIndices: [...headIndices] });
+
+  return { accepted: isFinalAccepted, events };
+};
+
+/** Automaton types whose acceptance behavior can be batch-tested via a plain input string. */
+export type BatchTestableType = 'DFA' | 'NFA' | 'PDA' | 'TM';
+
+export interface BatchTestResult {
+  input: string;
+  accepted: boolean;
+}
+
+/**
+ * Runs a fixed list of input strings against an automaton and reports
+ * accept/reject per string, dispatching to the matching simulator. Shared by
+ * semantic grading (compare a submission's behavior against a reference
+ * solution) and batch mode (run many inputs at once).
+ */
+export const runBatchTests = (
+  automaton: Automaton,
+  type: BatchTestableType,
+  inputs: string[]
+): BatchTestResult[] => {
+  const simulate =
+    type === 'DFA' ? simulateDFA :
+    type === 'NFA' ? simulateNFA :
+    type === 'PDA' ? simulatePDA :
+    simulateTuringMachine;
+
+  return inputs.map(input => {
+    try {
+      return { input, accepted: simulate(automaton, input).accepted };
+    } catch {
+      return { input, accepted: false };
+    }
+  });
 };

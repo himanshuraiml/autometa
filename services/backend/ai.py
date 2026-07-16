@@ -1,8 +1,17 @@
-import httpx
+import asyncio
 import json
-from typing import Dict, Any, Optional
+import logging
+import os
+from typing import Any, Callable, Dict, Optional, Tuple
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
+import httpx
+
+from config import settings
+
+logger = logging.getLogger("autometa.ai")
+
+# Status codes worth retrying: rate limits and transient upstream failures.
+TRANSIENT_STATUS = {408, 429, 500, 502, 503, 504}
 
 LESSON_SCHEMA_INSTRUCTIONS = """
 You are an AI curriculum designer for "Autometa", a computer science automata theory app.
@@ -55,6 +64,7 @@ def _extract_json_object(text: str) -> Dict[str, Any]:
         raise ValueError("No JSON object found in model response.")
     return json.loads(text[start:end])
 
+
 SYSTEM_PROMPTS = {
     "Beginner": (
         "You are an AI computer science tutor explaining concepts to an absolute beginner. "
@@ -74,10 +84,130 @@ SYSTEM_PROMPTS = {
         "You are a computer science professor explaining concepts to graduate researchers. "
         "Be extremely rigorous, formal, and reference classic CS textbooks (e.g., Sipser, Hopcroft). "
         "Encourage theoretical proofs and formal language properties."
-    )
+    ),
 }
 
-import os
+ENV_KEY_BY_PROVIDER = {
+    "Gemini": "GEMINI_API_KEY",
+    "OpenAI": "OPENAI_API_KEY",
+    "Groq": "GROQ_API_KEY",
+}
+
+
+def resolve_provider_and_key(
+    provider: Optional[str], api_key: Optional[str]
+) -> Tuple[str, Optional[str]]:
+    """Request-supplied key wins; otherwise fall back to the provider's env var."""
+    chosen_provider = provider or "Ollama"
+    chosen_key = api_key
+    if not chosen_key:
+        env_name = ENV_KEY_BY_PROVIDER.get(chosen_provider)
+        if env_name:
+            chosen_key = os.getenv(env_name)
+    return chosen_provider, chosen_key
+
+
+def external_llm_ready(
+    provider: str, api_key: Optional[str], base_url: Optional[str], model: Optional[str]
+) -> bool:
+    if provider in ("Gemini", "OpenAI", "Groq"):
+        return bool(api_key)
+    if provider == "Custom":
+        return bool(base_url and model)
+    return False
+
+
+async def _post_with_retries(
+    client: httpx.AsyncClient,
+    url: str,
+    *,
+    headers: Optional[Dict[str, str]] = None,
+    json_body: Optional[Dict[str, Any]] = None,
+    label: str,
+) -> httpx.Response:
+    """POST with exponential backoff on transient transport errors and status codes.
+
+    `label` is used for logging instead of the URL so credentials or private
+    hosts never end up in log lines.
+    """
+    retries = max(settings.llm_retries, 0)
+    attempt = 0
+    while True:
+        try:
+            resp = await client.post(url, headers=headers, json=json_body)
+        except (httpx.TimeoutException, httpx.TransportError) as exc:
+            if attempt >= retries:
+                raise
+            delay = min(2**attempt, 8)
+            logger.warning(
+                "%s request failed (%s); retry %d/%d in %ds",
+                label, type(exc).__name__, attempt + 1, retries, delay,
+            )
+            await asyncio.sleep(delay)
+            attempt += 1
+            continue
+
+        if resp.status_code in TRANSIENT_STATUS and attempt < retries:
+            delay = min(2**attempt, 8)
+            logger.warning(
+                "%s returned HTTP %d; retry %d/%d in %ds",
+                label, resp.status_code, attempt + 1, retries, delay,
+            )
+            await asyncio.sleep(delay)
+            attempt += 1
+            continue
+        return resp
+
+
+def _build_external_request(
+    provider: str,
+    prompt: str,
+    api_key: str,
+    response_format: str,
+    model: Optional[str],
+    base_url: Optional[str],
+) -> Tuple[str, Dict[str, str], Dict[str, Any], Callable[[Dict[str, Any]], str]]:
+    """Returns (url, headers, body, extractor) for the given provider."""
+    if provider == "Gemini":
+        chosen_model = model or "gemini-2.5-flash"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{chosen_model}:generateContent"
+        # Key travels in a header, never in the URL, so it cannot leak into logs.
+        headers = {"x-goog-api-key": api_key, "Content-Type": "application/json"}
+        body: Dict[str, Any] = {"contents": [{"parts": [{"text": prompt}]}]}
+        if response_format == "json":
+            body["generationConfig"] = {"responseMimeType": "application/json"}
+        return url, headers, body, lambda d: d["candidates"][0]["content"]["parts"][0]["text"]
+
+    # Everything else speaks the OpenAI chat-completions dialect.
+    if provider == "OpenAI":
+        url = "https://api.openai.com/v1/chat/completions"
+        default_model = "gpt-4o-mini"
+    elif provider == "Groq":
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        default_model = "llama-3.3-70b-versatile"
+    elif provider == "Custom":
+        # Any OpenAI-compatible endpoint (OpenRouter, Together, LM Studio, vLLM).
+        # base_url and model are required; api_key is optional for local servers.
+        if not base_url or not model:
+            raise ValueError("Custom provider requires both base_url and model.")
+        url = base_url.rstrip("/")
+        if not url.endswith("/chat/completions"):
+            url = f"{url}/chat/completions"
+        default_model = model
+    else:
+        raise ValueError(f"Unknown provider: {provider}")
+
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    body = {
+        "model": model or default_model,
+        "messages": [{"role": "user", "content": prompt}],
+    }
+    if response_format == "json":
+        body["response_format"] = {"type": "json_object"}
+    return url, headers, body, lambda d: d["choices"][0]["message"]["content"]
+
 
 async def call_external_llm(
     prompt: str,
@@ -85,86 +215,48 @@ async def call_external_llm(
     api_key: str,
     response_format: str = "text",
     model: Optional[str] = None,
-    base_url: Optional[str] = None
+    base_url: Optional[str] = None,
 ) -> Optional[str]:
-    async with httpx.AsyncClient(timeout=120.0) as client:
-        try:
-            if provider == "Gemini":
-                chosen_model = model or "gemini-2.5-flash"
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{chosen_model}:generateContent?key={api_key}"
-                body = {
-                    "contents": [{"parts": [{"text": prompt}]}]
-                }
-                if response_format == "json":
-                    body["generationConfig"] = {"responseMimeType": "application/json"}
+    try:
+        url, headers, body, extract = _build_external_request(
+            provider, prompt, api_key, response_format, model, base_url
+        )
+    except ValueError as exc:
+        logger.error("LLM request misconfigured: %s", exc)
+        return None
 
-                resp = await client.post(url, json=body)
-                if resp.status_code == 200:
-                    return resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+    try:
+        async with httpx.AsyncClient(timeout=settings.llm_timeout) as client:
+            resp = await _post_with_retries(
+                client, url, headers=headers, json_body=body, label=f"{provider} API"
+            )
+            if resp.status_code != 200:
+                logger.error(
+                    "%s API returned HTTP %d: %s",
+                    provider, resp.status_code, resp.text[:300],
+                )
+                return None
+            return extract(resp.json())
+    except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
+        logger.error("Error calling %s API: %s: %s", provider, type(exc).__name__, exc)
+        return None
 
-            elif provider == "OpenAI":
-                url = "https://api.openai.com/v1/chat/completions"
-                headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-                body = {
-                    "model": model or "gpt-4o-mini",
-                    "messages": [{"role": "user", "content": prompt}]
-                }
-                if response_format == "json":
-                    body["response_format"] = {"type": "json_object"}
 
-                resp = await client.post(url, headers=headers, json=body)
-                if resp.status_code == 200:
-                    return resp.json()["choices"][0]["message"]["content"]
+async def _call_ollama(
+    prompt: str,
+    model: str,
+    *,
+    response_format: Optional[str] = None,
+    timeout: float,
+) -> httpx.Response:
+    body: Dict[str, Any] = {"model": model, "prompt": prompt, "stream": False}
+    if response_format:
+        body["format"] = response_format
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        return await _post_with_retries(
+            client, settings.ollama_url, json_body=body, label=f"Ollama ({model})"
+        )
 
-            elif provider == "Groq":
-                url = "https://api.groq.com/openai/v1/chat/completions"
-                headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-                body = {
-                    "model": model or "llama-3.3-70b-versatile",
-                    "messages": [{"role": "user", "content": prompt}]
-                }
-                if response_format == "json":
-                    body["response_format"] = {"type": "json_object"}
-
-                resp = await client.post(url, headers=headers, json=body)
-                if resp.status_code == 200:
-                    return resp.json()["choices"][0]["message"]["content"]
-
-            elif provider == "Custom":
-                # Any OpenAI-compatible chat completions endpoint (OpenRouter, Together,
-                # local LM Studio / vLLM servers, etc). base_url and model are required;
-                # api_key is optional since some local servers don't need one.
-                if not base_url or not model:
-                    print("Custom provider requires both base_url and model.")
-                    return None
-                url = base_url.rstrip("/")
-                if not url.endswith("/chat/completions"):
-                    url = f"{url}/chat/completions"
-                headers = {"Content-Type": "application/json"}
-                if api_key:
-                    headers["Authorization"] = f"Bearer {api_key}"
-                body = {
-                    "model": model,
-                    "messages": [{"role": "user", "content": prompt}]
-                }
-                if response_format == "json":
-                    body["response_format"] = {"type": "json_object"}
-
-                resp = await client.post(url, headers=headers, json=body)
-                if resp.status_code == 200:
-                    return resp.json()["choices"][0]["message"]["content"]
-                else:
-                    print(f"Custom provider returned HTTP {resp.status_code}: {resp.text[:300]}")
-        except Exception as e:
-            print(f"Error calling {provider} API: {e}")
-    return None
-
-def _external_llm_ready(provider: str, api_key: Optional[str], base_url: Optional[str], model: Optional[str]) -> bool:
-    if provider in ["Gemini", "OpenAI", "Groq"]:
-        return bool(api_key)
-    if provider == "Custom":
-        return bool(base_url and model)
-    return False
 
 async def generate_tutor_response(
     prompt: str,
@@ -173,10 +265,10 @@ async def generate_tutor_response(
     provider: Optional[str] = None,
     api_key: Optional[str] = None,
     model: Optional[str] = None,
-    base_url: Optional[str] = None
+    base_url: Optional[str] = None,
 ) -> str:
     system_instruction = SYSTEM_PROMPTS.get(mode, SYSTEM_PROMPTS["Intermediate"])
-    
+
     context_str = ""
     if context_data:
         context_str = (
@@ -186,54 +278,52 @@ async def generate_tutor_response(
             f"Transitions: {context_data.get('edges')}\n"
             f"Input String: {context_data.get('input_string')}\n"
         )
-        if context_data.get('rule_engine_calculation'):
+        if context_data.get("rule_engine_calculation"):
             context_str += (
                 f"Rule Engine Correct Calculation: {context_data.get('rule_engine_calculation')}\n"
                 f"(IMPORTANT: Use this calculation as the absolute source of truth. Explain it step-by-step to the student. "
                 f"Do not recalculate or output conflicting results.)\n"
             )
-    
-    full_prompt = f"{system_instruction}\n{context_str}\nStudent Question: {prompt}\n\nAnswer:"
-    
-    # 1. Resolve Provider and Key
-    chosen_provider = provider or "Ollama"
-    chosen_key = api_key
-    if not chosen_key:
-        if chosen_provider == "Gemini":
-            chosen_key = os.getenv("GEMINI_API_KEY")
-        elif chosen_provider == "OpenAI":
-            chosen_key = os.getenv("OPENAI_API_KEY")
-        elif chosen_provider == "Groq":
-            chosen_key = os.getenv("GROQ_API_KEY")
 
-    # 2. Try external provider first if configured
-    if _external_llm_ready(chosen_provider, chosen_key, base_url, model):
-        response_text = await call_external_llm(full_prompt, chosen_provider, chosen_key or "", model=model, base_url=base_url)
+    full_prompt = f"{system_instruction}\n{context_str}\nStudent Question: {prompt}\n\nAnswer:"
+
+    chosen_provider, chosen_key = resolve_provider_and_key(provider, api_key)
+
+    if external_llm_ready(chosen_provider, chosen_key, base_url, model):
+        response_text = await call_external_llm(
+            full_prompt, chosen_provider, chosen_key or "", model=model, base_url=base_url
+        )
         if response_text:
             return response_text
+        logger.warning("External provider %s failed; falling back to Ollama", chosen_provider)
 
-    # 3. Fallback to local Ollama
     try:
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            response = await client.post(OLLAMA_URL, json={
-                "model": "qwen2.5-coder:7b",
-                "prompt": full_prompt,
-                "stream": False
-            })
-            if response.status_code == 200:
-                return response.json().get("response", "No response content.")
-            else:
-                fallback_response = await client.post(OLLAMA_URL, json={
-                    "model": "llama3.2:1b",
-                    "prompt": full_prompt,
-                    "stream": False
-                })
-                if fallback_response.status_code == 200:
-                    return fallback_response.json().get("response", "No response content.")
-                return f"Ollama returned status code {response.status_code}. Make sure Ollama is running."
+        response = await _call_ollama(
+            full_prompt, settings.ollama_model, timeout=settings.llm_timeout
+        )
+        if response.status_code == 200:
+            return response.json().get("response", "No response content.")
+
+        logger.warning(
+            "Ollama model %s returned HTTP %d; trying fallback model",
+            settings.ollama_model, response.status_code,
+        )
+        fallback_response = await _call_ollama(
+            full_prompt, settings.ollama_fallback_model, timeout=settings.llm_timeout
+        )
+        if fallback_response.status_code == 200:
+            return fallback_response.json().get("response", "No response content.")
+        return (
+            f"Ollama returned status code {response.status_code}. "
+            "Make sure Ollama is running."
+        )
     except httpx.ConnectError:
-        return "Could not connect to local Ollama server at http://localhost:11434. Please verify Ollama is running (`ollama run qwen2.5-coder:7b`)."
-    except Exception as e:
+        return (
+            f"Could not connect to local Ollama server at {settings.ollama_url}. "
+            f"Please verify Ollama is running (`ollama run {settings.ollama_model}`)."
+        )
+    except httpx.HTTPError as e:
+        logger.error("Ollama request failed: %s: %s", type(e).__name__, e)
         return f"Error communicating with local LLM ({type(e).__name__}): {str(e)}"
 
 
@@ -248,67 +338,77 @@ async def generate_lesson(
     provider: Optional[str] = None,
     api_key: Optional[str] = None,
     model: Optional[str] = None,
-    base_url: Optional[str] = None
+    base_url: Optional[str] = None,
 ) -> Dict[str, Any]:
     system_instruction = SYSTEM_PROMPTS.get(difficulty, "") if difficulty else ""
 
     brief_lines = [f"Teach {topic} to {audience}."]
     if duration:
-        brief_lines.append(f"Total lesson duration: {duration}. Pace the number and depth of slides to fit this time.")
+        brief_lines.append(
+            f"Total lesson duration: {duration}. Pace the number and depth of slides to fit this time."
+        )
     if difficulty:
         brief_lines.append(f"Difficulty level: {difficulty}.")
     if teaching_style:
         brief_lines.append(f"Teaching style: {teaching_style}.")
     if not include_quizzes:
-        brief_lines.append("Do not include quizQuestion, quizOptions, or quizAnswer on any slide (omit those fields entirely).")
+        brief_lines.append(
+            "Do not include quizQuestion, quizOptions, or quizAnswer on any slide (omit those fields entirely)."
+        )
     if not generate_narration:
         brief_lines.append("Do not include a narration field on any slide (omit it entirely).")
 
     full_prompt = f"{system_instruction}\n{' '.join(brief_lines)}\n{LESSON_SCHEMA_INSTRUCTIONS}"
 
-    # 1. Resolve Provider and Key
-    chosen_provider = provider or "Ollama"
-    chosen_key = api_key
-    if not chosen_key:
-        if chosen_provider == "Gemini":
-            chosen_key = os.getenv("GEMINI_API_KEY")
-        elif chosen_provider == "OpenAI":
-            chosen_key = os.getenv("OPENAI_API_KEY")
-        elif chosen_provider == "Groq":
-            chosen_key = os.getenv("GROQ_API_KEY")
+    chosen_provider, chosen_key = resolve_provider_and_key(provider, api_key)
 
-    # 2. Try external provider
-    if _external_llm_ready(chosen_provider, chosen_key, base_url, model):
-        raw_text = await call_external_llm(full_prompt, chosen_provider, chosen_key or "", response_format="json", model=model, base_url=base_url)
+    if external_llm_ready(chosen_provider, chosen_key, base_url, model):
+        raw_text = await call_external_llm(
+            full_prompt,
+            chosen_provider,
+            chosen_key or "",
+            response_format="json",
+            model=model,
+            base_url=base_url,
+        )
         if raw_text:
             try:
                 return _extract_json_object(raw_text)
             except (ValueError, json.JSONDecodeError):
-                pass
+                logger.warning(
+                    "External provider %s returned unparseable lesson JSON; falling back to Ollama",
+                    chosen_provider,
+                )
 
-    # 3. Fallback to local Ollama
-    async def _call(model: str) -> Optional[Dict[str, Any]]:
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            response = await client.post(OLLAMA_URL, json={
-                "model": model,
-                "prompt": full_prompt,
-                "stream": False,
-                "format": "json"
-            })
-            if response.status_code != 200:
-                return None
-            raw_text = response.json().get("response", "")
-            try:
-                return _extract_json_object(raw_text)
-            except (ValueError, json.JSONDecodeError):
-                return None
+    async def _lesson_from_ollama(ollama_model: str) -> Optional[Dict[str, Any]]:
+        response = await _call_ollama(
+            full_prompt, ollama_model, response_format="json", timeout=settings.lesson_timeout
+        )
+        if response.status_code != 200:
+            logger.warning(
+                "Ollama model %s returned HTTP %d for lesson generation",
+                ollama_model, response.status_code,
+            )
+            return None
+        raw_text = response.json().get("response", "")
+        try:
+            return _extract_json_object(raw_text)
+        except (ValueError, json.JSONDecodeError):
+            logger.warning("Ollama model %s returned unparseable lesson JSON", ollama_model)
+            return None
 
     try:
-        lesson = await _call("qwen2.5-coder:7b")
+        lesson = await _lesson_from_ollama(settings.ollama_model)
         if lesson is None:
-            lesson = await _call("llama3.2:1b")
+            lesson = await _lesson_from_ollama(settings.ollama_fallback_model)
         if lesson is None:
-            raise ValueError("Local LLM did not return a parseable lesson JSON object. Verify Ollama is running and the model is loaded.")
+            raise ValueError(
+                "Local LLM did not return a parseable lesson JSON object. "
+                "Verify Ollama is running and the model is loaded."
+            )
         return lesson
     except httpx.ConnectError:
-        raise ValueError("Could not connect to local Ollama server at http://localhost:11434. Please verify Ollama is running (`ollama run qwen2.5-coder:7b`).")
+        raise ValueError(
+            f"Could not connect to local Ollama server at {settings.ollama_url}. "
+            f"Please verify Ollama is running (`ollama run {settings.ollama_model}`)."
+        )

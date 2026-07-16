@@ -26,6 +26,11 @@ pip-delete-this-directory.txt
 *.sqlite
 autometa.db
 
+# Environment variables (may contain local secrets/API keys)
+.env
+.env.local
+.env.*.local
+
 # OS specific files
 .DS_Store
 .DS_Store?
@@ -48,3 +53,4 @@ Thumbs.db
 .gemini/
 .claude/
 .agents/
+.playwright-mcp/

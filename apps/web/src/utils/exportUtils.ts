@@ -2,6 +2,7 @@ import { toPng, toSvg, toCanvas } from 'html-to-image';
 import { getNodesBounds, getViewportForBounds } from '@xyflow/react';
 import type { Node, Edge } from '@xyflow/react';
 import { GIFEncoder, quantize, applyPalette } from 'gifenc';
+import type { SimulationEvent } from '@autometa/simulation-engine';
 
 const EXPORT_PADDING = 60;
 const EXPORT_BACKGROUND = '#070a13';
@@ -165,6 +166,30 @@ export const downloadFile = (content: string, filename: string, contentType: str
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+};
+
+const csvCell = (value: unknown): string => {
+  if (value === undefined || value === null) return '';
+  const text = typeof value === 'object' ? JSON.stringify(value) : String(value);
+  return `"${text.replace(/"/g, '""')}"`;
+};
+
+/**
+ * Exports a simulation's full event trace (tape/stack snapshots included) as
+ * JSON or CSV, so a run can be inspected or diffed outside the app.
+ */
+export const exportSimulationTrace = (events: SimulationEvent[], automatonType: string, format: 'json' | 'csv') => {
+  const filename = `autometa-${automatonType.toLowerCase()}-trace`;
+  if (format === 'json') {
+    downloadFile(JSON.stringify(events, null, 2), `${filename}.json`, 'application/json');
+    return;
+  }
+  const columns = ['time', 'event', 'stateId', 'edgeId', 'symbol', 'symbolIndex', 'headIndex', 'headIndices', 'tape', 'tapes', 'stack'] as const;
+  const rows = [
+    columns.join(','),
+    ...events.map(event => columns.map(col => csvCell((event as unknown as Record<string, unknown>)[col])).join(',')),
+  ];
+  downloadFile(rows.join('\n'), `${filename}.csv`, 'text/csv');
 };
 
 /**

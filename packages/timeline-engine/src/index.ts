@@ -26,11 +26,25 @@ export interface AnimationTimeline {
 }
 
 /**
+ * Structurally matches @autometa/simulation-engine's SimulationEvent so this
+ * package stays decoupled from the simulator while the seam remains
+ * type-checked (extra fields like `time` are allowed by structural typing).
+ */
+export interface TimelineSourceEvent {
+  event: 'enter_state' | 'transition' | 'active_states' | 'accept' | 'reject';
+  stateId?: string;
+  activeStateIds?: string[];
+  edgeId?: string;
+  symbol?: string;
+  symbolIndex?: number;
+}
+
+/**
  * Maps simulation events into a time-scaled animation timeline.
  * stepDuration controls how long each state highlight or transition takes.
  */
 export const generateTimeline = (
-  events: any[],
+  events: TimelineSourceEvent[],
   stepDuration: number = 800
 ): AnimationTimeline => {
   const keyframes: AnimationKeyframe[] = [];
@@ -40,7 +54,7 @@ export const generateTimeline = (
     const baseKeyframe = {
       id: `kf-${idx}-${event.event}-${Date.now()}`,
       symbol: event.symbol,
-      symbolIndex: event.symbolIndex,
+      symbolIndex: idx,
     };
 
     switch (event.event) {

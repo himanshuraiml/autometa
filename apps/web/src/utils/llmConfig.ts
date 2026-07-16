@@ -1,3 +1,5 @@
+import { getSecret } from './secretStore';
+
 export type LLMProvider = 'Ollama' | 'Gemini' | 'OpenAI' | 'Groq' | 'Custom';
 
 export interface LLMConfig {
@@ -22,7 +24,11 @@ const KEYS = {
 
 export { KEYS as LLM_STORAGE_KEYS };
 
-/** Reads the currently configured LLM provider/key/model straight from localStorage. */
+/**
+ * Reads the currently configured LLM provider/key/model. Non-secret settings
+ * (provider, model names, base URL) come from localStorage; API keys come from
+ * the secret store (OS keychain under Tauri, localStorage on the plain web).
+ */
 export const getLLMConfig = (): LLMConfig => {
   const provider = (localStorage.getItem(KEYS.provider) as LLMProvider) || 'Ollama';
 
@@ -30,25 +36,25 @@ export const getLLMConfig = (): LLMConfig => {
     case 'Gemini':
       return {
         provider,
-        api_key: localStorage.getItem(KEYS.geminiKey) || '',
+        api_key: getSecret(KEYS.geminiKey),
         model: localStorage.getItem(KEYS.geminiModel) || undefined,
       };
     case 'OpenAI':
       return {
         provider,
-        api_key: localStorage.getItem(KEYS.openaiKey) || '',
+        api_key: getSecret(KEYS.openaiKey),
         model: localStorage.getItem(KEYS.openaiModel) || undefined,
       };
     case 'Groq':
       return {
         provider,
-        api_key: localStorage.getItem(KEYS.groqKey) || '',
+        api_key: getSecret(KEYS.groqKey),
         model: localStorage.getItem(KEYS.groqModel) || undefined,
       };
     case 'Custom':
       return {
         provider,
-        api_key: localStorage.getItem(KEYS.customKey) || '',
+        api_key: getSecret(KEYS.customKey),
         model: localStorage.getItem(KEYS.customModel) || undefined,
         base_url: localStorage.getItem(KEYS.customBaseUrl) || undefined,
       };

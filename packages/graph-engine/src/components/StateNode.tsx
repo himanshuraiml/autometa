@@ -6,6 +6,7 @@ export interface StateNodeData {
   label: string;
   isStart?: boolean;
   isAccept?: boolean;
+  isReject?: boolean;
   isActive?: boolean;
   scale?: number;
   glow?: number;
@@ -21,12 +22,20 @@ export const StateNode = memo((props: NodeProps) => {
   const label = nodeData.label ?? '';
   const labelFontSizeClass = label.length > 8 ? 'text-[9px]' : label.length > 5 ? 'text-[11px]' : 'text-base';
 
+  const roleDescriptors = [
+    nodeData.isStart && 'start state',
+    nodeData.isAccept && 'accepting state',
+    nodeData.isReject && 'reject state',
+    nodeData.isActive && 'currently active',
+  ].filter(Boolean);
+  const ariaLabel = `State ${label}${roleDescriptors.length ? `, ${roleDescriptors.join(', ')}` : ''}`;
+
   return (
-    <div className="relative">
+    <div className="relative" role="group" aria-label={ariaLabel}>
       {/* Start State Arrow Indicator */}
       {nodeData.isStart && (
         <div className="absolute -left-12 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
-          <svg width="40" height="20" className="text-[#00f0ff]">
+          <svg width="40" height="20" className="text-[var(--color-blue)]">
             <defs>
               <marker id="start-arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
                 <path d="M0,0 L6,3 L0,6 Z" fill="currentColor" />
@@ -34,7 +43,7 @@ export const StateNode = memo((props: NodeProps) => {
             </defs>
             <line x1="0" y1="10" x2="32" y2="10" stroke="currentColor" strokeWidth="3" markerEnd="url(#start-arrow)" />
           </svg>
-          <span className="text-[9px] text-[#00f0ff] uppercase font-bold absolute left-1 -top-4 tracking-wider">Start</span>
+          <span className="text-[9px] text-[var(--color-blue)] uppercase font-bold absolute left-1 -top-4 tracking-wider">Start</span>
         </div>
       )}
 
@@ -46,22 +55,26 @@ export const StateNode = memo((props: NodeProps) => {
           borderRadius: nodeData.morph !== undefined ? `${50 - (nodeData.morph * 40)}%` : undefined,
           animation: nodeData.shake ? 'shake 0.15s ease-in-out infinite' : undefined,
           boxShadow: (nodeData.glow ?? 0) > 0 
-            ? `0 0 ${(nodeData.glow ?? 0) * 20}px rgba(0, 240, 255, ${(nodeData.glow ?? 0) * 0.6})` 
+            ? `0 0 ${(nodeData.glow ?? 0) * 20}px var(--color-blue)` 
             : selected 
-              ? '0 0 15px rgba(255, 0, 127, 0.4)' 
+              ? '0 0 15px var(--color-violet)' 
               : undefined,
           borderColor: (nodeData.glow ?? 0) > 0 
-            ? '#00f0ff' 
+            ? 'var(--color-blue)' 
             : selected 
-              ? '#ff007f' 
-              : 'rgba(156, 163, 175, 0.6)',
+              ? 'var(--color-violet)' 
+              : nodeData.isReject
+                ? 'var(--color-rose)'
+              : nodeData.isAccept
+                ? 'var(--color-emerald)'
+              : 'var(--border-color)',
           backgroundColor: (nodeData.glow ?? 0) > 0
-            ? `rgba(0, 240, 255, ${(nodeData.glow ?? 0) * 0.15})`
+            ? 'rgba(0, 86, 179, 0.15)'
             : selected
-              ? '#162035'
-              : '#0d1324'
+              ? 'var(--bg-panel-hover)'
+              : 'var(--node-bg)'
         }}
-        className={`w-16 h-16 rounded-full flex items-center justify-center font-bold ${labelFontSizeClass} transition-all duration-150 relative select-none border-2 text-gray-200 overflow-hidden text-center leading-tight break-words px-1`}
+        className={`w-16 h-16 rounded-full flex items-center justify-center font-bold ${labelFontSizeClass} transition-all duration-150 relative select-none border-2 text-[var(--text-main)] overflow-hidden text-center leading-tight break-words px-1`}
       >
         {label}
 
@@ -71,10 +84,10 @@ export const StateNode = memo((props: NodeProps) => {
             style={{
               borderRadius: nodeData.morph !== undefined ? `${50 - (nodeData.morph * 40)}%` : undefined,
               borderColor: (nodeData.glow ?? 0) > 0 
-                ? '#00f0ff' 
+                ? 'var(--color-blue)' 
                 : selected 
-                  ? '#ff007f' 
-                  : 'rgba(156, 163, 175, 0.6)'
+                  ? 'var(--color-violet)' 
+                  : 'var(--color-emerald)'
             }}
             className="absolute inset-1 rounded-full border-2 pointer-events-none"
           />
@@ -82,17 +95,17 @@ export const StateNode = memo((props: NodeProps) => {
       </div>
 
       {/* Connection Handles */}
-      <Handle type="target" position={Position.Left} id="left-in" style={{ left: '-4px', background: '#00f0ff' }} />
-      <Handle type="source" position={Position.Left} id="left-out" style={{ left: '-4px', background: '#00f0ff' }} />
+      <Handle type="target" position={Position.Left} id="left-in" style={{ left: '-4px', background: 'var(--color-blue)' }} />
+      <Handle type="source" position={Position.Left} id="left-out" style={{ left: '-4px', background: 'var(--color-blue)' }} />
 
-      <Handle type="target" position={Position.Right} id="right-in" style={{ right: '-4px', background: '#00f0ff' }} />
-      <Handle type="source" position={Position.Right} id="right-out" style={{ right: '-4px', background: '#00f0ff' }} />
+      <Handle type="target" position={Position.Right} id="right-in" style={{ right: '-4px', background: 'var(--color-blue)' }} />
+      <Handle type="source" position={Position.Right} id="right-out" style={{ right: '-4px', background: 'var(--color-blue)' }} />
 
-      <Handle type="target" position={Position.Top} id="top-in" style={{ top: '-4px', background: '#00f0ff' }} />
-      <Handle type="source" position={Position.Top} id="top-out" style={{ top: '-4px', background: '#00f0ff' }} />
+      <Handle type="target" position={Position.Top} id="top-in" style={{ top: '-4px', background: 'var(--color-blue)' }} />
+      <Handle type="source" position={Position.Top} id="top-out" style={{ top: '-4px', background: 'var(--color-blue)' }} />
 
-      <Handle type="target" position={Position.Bottom} id="bottom-in" style={{ bottom: '-4px', background: '#00f0ff' }} />
-      <Handle type="source" position={Position.Bottom} id="bottom-out" style={{ bottom: '-4px', background: '#00f0ff' }} />
+      <Handle type="target" position={Position.Bottom} id="bottom-in" style={{ bottom: '-4px', background: 'var(--color-blue)' }} />
+      <Handle type="source" position={Position.Bottom} id="bottom-out" style={{ bottom: '-4px', background: 'var(--color-blue)' }} />
     </div>
   );
 });

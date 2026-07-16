@@ -1,14 +1,90 @@
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f3f4f6;
+  --bg-panel: #f9fafb;
+  --bg-panel-hover: #f3f4f6;
+  --border-color: #d1d5db;
+  --border-color-active: #111827;
+  
+  /* Vibrant colors strictly for state, connectors, and animations */
+  --color-emerald: #10b981;
+  --color-violet: #7c3aed;
+  --color-amber: #d97706;
+  --color-rose: #ef4444;
+  --color-indigo: #2563eb;
+  --color-blue: #0056b3;
+  
+  /* Pure Monochrome UI Accent for Shell */
+  --color-ui-accent: #111827;
+  --color-ui-accent-hover: #1f2937;
+  
+  --text-main: #111827;
+  --text-muted: #4b5563;
+  --text-dim: #9ca3af;
+  
+  --shadow-glow-green: 0 0 15px rgba(16, 185, 129, 0.4);
+  --shadow-glow-violet: 0 0 15px rgba(124, 58, 237, 0.4);
+  --shadow-glow-blue: 0 0 15px rgba(0, 86, 179, 0.4);
+  
+  --node-bg: #ffffff;
+  --node-border: #111827;
+  --edge-stroke: #111827;
+  --tape-track-bg: #ffffff;
+  --tape-cell-bg: #f9fafb;
+  --card-bg: #ffffff;
+  --chat-assistant-bg: #f3f4f6;
+  --chat-user-bg: #f3f4f6;
+}
+
+.dark {
+  --bg-primary: #121214;
+  --bg-secondary: #1c1c1f;
+  --bg-panel: #252529;
+  --bg-panel-hover: #2e2e33;
+  --border-color: #333338;
+  --border-color-active: #ffffff;
+  
+  /* Vibrant colors strictly for state, connectors, and animations */
+  --color-emerald: #34d399;
+  --color-violet: #a78bfa;
+  --color-amber: #fbbf24;
+  --color-rose: #f87171;
+  --color-indigo: #60a5fa;
+  --color-blue: #3b82f6;
+  
+  /* Pure Monochrome UI Accent for Shell */
+  --color-ui-accent: #ffffff;
+  --color-ui-accent-hover: #f3f4f6;
+  
+  --text-main: #f3f4f6;
+  --text-muted: #a1a1aa;
+  --text-dim: #71717a;
+  
+  --shadow-glow-green: 0 0 15px rgba(52, 211, 153, 0.4);
+  --shadow-glow-violet: 0 0 15px rgba(167, 139, 250, 0.4);
+  --shadow-glow-blue: 0 0 15px rgba(59, 130, 246, 0.4);
+  
+  --node-bg: #1c1c1f;
+  --node-border: #f3f4f6;
+  --edge-stroke: #a1a1aa;
+  --tape-track-bg: #121214;
+  --tape-cell-bg: #252529;
+  --card-bg: #1c1c1f;
+  --chat-assistant-bg: #252529;
+  --chat-user-bg: #252529;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    @apply bg-[#070a13] text-gray-100 font-sans antialiased overflow-x-hidden;
-    background-image: 
-      radial-gradient(at 0% 0%, rgba(0, 240, 255, 0.08) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, rgba(255, 0, 127, 0.05) 0px, transparent 50%);
+    background-color: var(--bg-primary);
+    color: var(--text-main);
+    @apply font-sans antialiased overflow-x-hidden;
     min-height: 100vh;
+    transition: background-color 0.2s, color 0.2s;
   }
 
   /* Custom premium scrollbar */
@@ -18,36 +94,33 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: rgba(7, 10, 19, 0.5);
+    background: var(--bg-secondary);
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--border-color);
     border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 240, 255, 0.3);
+    background: var(--text-muted);
   }
 }
 
 .glass-panel {
-  background: rgba(10, 15, 30, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
 }
 
 .glass-button {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease-in-out;
 }
 
 .glass-button:hover {
-  background: rgba(0, 240, 255, 0.1);
-  border-color: rgba(0, 240, 255, 0.4);
-  box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+  background: var(--bg-secondary);
+  border-color: var(--text-dim);
 }
 
 /* React Flow customizations for dark mode and high aesthetics */
@@ -58,64 +131,58 @@
 .react-flow__handle {
   width: 8px !important;
   height: 8px !important;
-  background: #00f0ff !important;
-  border: 2px solid #070a13 !important;
+  background: var(--color-blue) !important; /* auroraMint */
+  border: 2px solid var(--bg-primary) !important;
 }
 
 .react-flow__handle:hover {
-  background: #ff007f !important;
-  box-shadow: 0 0 8px #ff007f;
+  background: var(--color-violet) !important; /* auroraPurple */
+  box-shadow: var(--shadow-glow-violet);
 }
 
 .react-flow__edge-path {
-  stroke: rgba(255, 255, 255, 0.2) !important;
+  stroke: var(--edge-stroke) !important;
   stroke-width: 2 !important;
   transition: stroke 0.3s, stroke-width 0.3s;
 }
 
 .react-flow__edge.selected .react-flow__edge-path {
-  stroke: #00f0ff !important;
-  stroke-width: 3 !important;
+  stroke: var(--color-blue) !important; /* auroraMint */
+  stroke-width: 2.5 !important;
 }
 
 /* React Flow control panel styling */
 .react-flow__controls {
-  background: rgba(10, 15, 30, 0.8) !important;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: var(--bg-primary) !important;
+  border: 1px solid var(--border-color) !important;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
 }
 
 .react-flow__controls-button {
   background: transparent !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-  color: #ffffff !important;
-  fill: #ffffff !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  color: var(--text-main) !important;
+  fill: var(--text-main) !important;
   transition: all 0.2s ease;
   width: 28px !important;
   height: 28px !important;
 }
 
 .react-flow__controls-button:hover {
-  background: rgba(0, 240, 255, 0.2) !important;
-  color: #00f0ff !important;
-  fill: #00f0ff !important;
-}
-
-.react-flow__controls-button svg {
-  fill: currentColor !important;
+  background: var(--bg-secondary) !important;
+  color: var(--color-blue) !important;
+  fill: var(--color-blue) !important;
 }
 
 /* Custom visualizer utilities & keyframes animations */
 .text-glow-blue {
-  text-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+  text-shadow: 0 0 8px rgba(0, 229, 163, 0.5); /* mapped to auroraMint */
 }
 
 .text-glow-magenta {
-  text-shadow: 0 0 8px rgba(255, 0, 127, 0.6);
+  text-shadow: 0 0 8px rgba(139, 92, 246, 0.5); /* mapped to auroraPurple */
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -175,4 +242,242 @@
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-4px); }
   75% { transform: translateX(4px); }
+}
+
+/* Monochromatic Theme Universal Class Overrides */
+
+/* --- BACKGROUNDS OVERRIDES --- */
+[class*="bg-[#050811]"],
+[class*="bg-[#060B1A]"],
+[class*="bg-[#050810]"],
+[class*="bg-[#0a0f1d]"],
+.bg-darkBg,
+.bg-auroraSpruce {
+  background-color: var(--bg-primary) !important;
+}
+
+/* Secondary Panels */
+[class*="bg-[#0b121e]"],
+[class*="bg-[#0b1220]"],
+[class*="bg-[#0c101d]"],
+.bg-auroraCard {
+  background-color: var(--bg-secondary) !important;
+}
+
+/* Card Backgrounds */
+[class*="bg-[#0d162c]"],
+[class*="bg-[#0c1223]"],
+[class*="bg-white/"],
+[class*="bg-black/"],
+.bg-darkCard {
+  background-color: var(--bg-panel) !important;
+}
+
+[class*="bg-white/"]:hover,
+[class*="bg-black/"]:hover,
+[class*="bg-[rgba"]:hover {
+  background-color: var(--bg-panel-hover) !important;
+}
+
+/* --- BORDER OVERRIDES --- */
+[class*="border-white/"],
+[class*="border-slate-"],
+[class*="border-[#00e5a3]"],
+[class*="border-[#8b5cf6]"],
+[class*="border-[#c4b5fd]"],
+[class*="border-[#d8b4fe]"],
+[class*="border-[#0ea5e9]"],
+.border-slate-800,
+.border-slate-700 {
+  border-color: var(--border-color) !important;
+}
+
+/* --- TEXT COLOR OVERRIDES --- */
+.text-slate-100,
+.text-white,
+.text-gray-100,
+.text-gray-200,
+.text-gray-300,
+.text-slate-200,
+.text-slate-300 {
+  color: var(--text-main) !important;
+}
+
+.text-slate-400,
+.text-gray-400,
+.text-slate-300\/70 {
+  color: var(--text-muted) !important;
+}
+
+.text-slate-500,
+.text-gray-500,
+.text-slate-600 {
+  color: var(--text-dim) !important;
+}
+
+/* Monochromatic Text Overrides for Panel Headings, Labels, and Codes */
+[class*="text-[#00e5a3]"],
+[class*="text-[#8b5cf6]"],
+[class*="text-[#c4b5fd]"],
+[class*="text-[#d8b4fe]"],
+[class*="text-[#0ea5e9]"],
+[class*="text-[#38bdf8]"],
+[class*="text-[#a7f3d0]"],
+[class*="text-[#ddd6fe]"] {
+  color: var(--text-muted) !important;
+}
+
+/* Badge/Tag Background Overrides */
+[class*="bg-[#8b5cf6]/1"],
+[class*="bg-[#00e5a3]/1"],
+[class*="bg-[#0ea5e9]/1"] {
+  background-color: var(--bg-panel-hover) !important;
+}
+
+/* --- BUTTON GRADIENTS & HIGHLIGHT OVERRIDES --- */
+/* Strip colors from general elements, except simulator verdicts and graphs */
+.bg-gradient-to-br,
+.bg-gradient-to-r {
+  background-image: none !important;
+}
+
+/* Convert cyan/pink/mint buttons to monochromatic buttons in Light Mode */
+html:not(.dark) .from-\[\#00e5a3\],
+html:not(.dark) .to-\[\#8b5cf6\],
+html:not(.dark) .bg-\[\#00e5a3\],
+html:not(.dark) .bg-\[\#8b5cf6\],
+html:not(.dark) .bg-auroraMint,
+html:not(.dark) .bg-auroraPurple,
+html:not(.dark) .text-black.bg-gradient-to-r,
+html:not(.dark) [class*="bg-[#00e5a3]"]:not(.bg-transparent),
+html:not(.dark) [class*="bg-[#8b5cf6]"]:not(.bg-transparent) {
+  background-color: var(--color-ui-accent) !important;
+  color: var(--bg-primary) !important;
+}
+
+html:not(.dark) .from-\[\#00e5a3\]:hover,
+html:not(.dark) .bg-\[\#00e5a3\]:hover,
+html:not(.dark) .bg-auroraMint:hover,
+html:not(.dark) [class*="bg-[#00e5a3]"]:not(.bg-transparent):hover,
+html:not(.dark) [class*="bg-[#8b5cf6]"]:not(.bg-transparent):hover {
+  background-color: var(--color-ui-accent-hover) !important;
+}
+
+/* Convert cyan/pink/mint buttons to monochromatic white buttons in Dark Mode */
+html.dark .from-\[\#00e5a3\],
+html.dark .to-\[\#8b5cf6\],
+html.dark .bg-\[\#00e5a3\],
+html.dark .bg-\[\#8b5cf6\],
+html.dark .bg-auroraMint,
+html.dark .bg-auroraPurple,
+html.dark .text-black.bg-gradient-to-r,
+html.dark [class*="bg-[#00e5a3]"]:not(.bg-transparent),
+html.dark [class*="bg-[#8b5cf6]"]:not(.bg-transparent) {
+  background-color: var(--color-ui-accent) !important;
+  color: var(--bg-primary) !important;
+}
+
+/* Text hover highlights */
+.hover\:text-\[\#00e5a3\]:hover,
+.hover\:text-white:hover {
+  color: var(--text-main) !important;
+}
+
+/* Warning contrast boosts */
+html:not(.dark) .text-emerald-300 {
+  color: var(--color-emerald) !important;
+}
+
+html:not(.dark) .text-red-300 {
+  color: var(--color-rose) !important;
+}
+
+html:not(.dark) .text-amber-200 {
+  color: var(--color-amber) !important;
+}
+
+html:not(.dark) .bg-emerald-400\/\[0\.04\] {
+  background-color: rgba(16, 185, 129, 0.08) !important;
+}
+
+html:not(.dark) .bg-red-500\/\[0\.03\] {
+  background-color: rgba(239, 68, 68, 0.08) !important;
+}
+
+html:not(.dark) .bg-\[\#00e5a3\]\/20 {
+  background-color: rgba(16, 185, 129, 0.1) !important;
+  color: var(--color-emerald) !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+}
+
+html:not(.dark) .text-\[\#00e5a3\] {
+  color: var(--color-emerald) !important;
+}
+
+/* Make green, purple, and amber outline buttons solid dark with white text in Light Mode */
+html:not(.dark) button.text-\[\#00e5a3\],
+html:not(.dark) button[class*="text-[#00e5a3]"],
+html:not(.dark) button.text-\[\#c4b5fd\],
+html:not(.dark) button[class*="text-[#c4b5fd]"],
+html:not(.dark) button.text-amber-200,
+html:not(.dark) button[class*="text-amber-"] {
+  background-color: var(--color-ui-accent) !important;
+  color: var(--bg-primary) !important;
+  border-color: var(--border-color-active) !important;
+}
+
+html:not(.dark) button.text-\[\#00e5a3\]:hover,
+html:not(.dark) button[class*="text-[#00e5a3]"]:hover,
+html:not(.dark) button.text-\[\#c4b5fd\]:hover,
+html:not(.dark) button[class*="text-[#c4b5fd]"]:hover,
+html:not(.dark) button.text-amber-200:hover,
+html:not(.dark) button[class*="text-amber-"]:hover {
+  background-color: var(--color-ui-accent-hover) !important;
+  color: var(--bg-primary) !important;
+}
+
+/* Remove glow shadows from panels/buttons */
+.shadow-glow-green,
+.shadow-glow-purple,
+.shadow-glass,
+.shadow-glow-pink,
+.shadow-glow-blue {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Override inputs/selects globally */
+input,
+select,
+textarea {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-main) !important;
+  border-color: var(--border-color) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-dim) !important;
+}
+
+/* Prevent SVG preview backgrounds from breaking */
+svg.graph-svg-layer,
+.react-flow__renderer {
+  background-color: transparent !important;
+}
+
+.bg-gradient-colorful {
+  background-image: linear-gradient(135deg, var(--color-emerald) 0%, var(--color-violet) 100%) !important;
+}
+
+/* Amber / Warning Alerts styling in Light Mode for high legibility */
+html:not(.dark) [class*="bg-amber-400"] {
+  background-color: rgba(217, 119, 6, 0.08) !important;
+}
+
+html:not(.dark) [class*="border-amber-400"] {
+  border-color: rgba(217, 119, 6, 0.3) !important;
+}
+
+html:not(.dark) [class*="text-amber-"] {
+  color: #b45309 !important;
 }

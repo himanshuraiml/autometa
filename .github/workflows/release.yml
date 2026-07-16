@@ -81,7 +81,56 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'AUTOMETA v__VERSION__'
-          releaseBody: 'First release of AUTOMETA Simulation Studio containing educational editor and Python sidecar backend.'
+          releaseBody: |
+            ## What's new in v0.2.0
+
+            Since v0.1.0, Autometa grew from a diagram editor into a full automata-theory learning platform.
+
+            ### Practice mode & learning paths
+            - Auto-generated practice exercises (DFA/NFA/PDA/TM/Regex/CFG) with semantic grading — real counterexamples, not diagram-shape matching
+            - Instructor authoring: build exercises and ordered lesson paths, track class progress in a new Gradebook
+            - Per-profile student progress tracking
+
+            ### Project library & collaboration
+            - Save, tag, favorite, and clone projects; browse public projects from other local profiles
+            - Explicit version history with restore/delete, and comment threads on projects
+            - JSON "share package" export/import (self-contained, read-only aware)
+
+            ### Interoperability
+            - JFLAP `.jff` import/export (DFA/NFA, PDA, TM, Mealy)
+            - Batch Mode: run generated or custom test strings across any automaton type, export CSV/JSON
+
+            ### Deeper automaton theory tools
+            - New "Compare & Combine" workspace: language equivalence, union/intersection/complement, NFA concatenation/star/reverse
+            - CFG → CNF/GNF/PDA conversions and left-recursion/left-factoring elimination, all with step-by-step walkthroughs
+            - DFA → Regex walkthrough, NFA ↔ regular-grammar conversions
+            - Ambiguity detection with side-by-side derivation trees, CFG simplification (epsilon/unit/useless-symbol removal), grammar classification
+            - Unrestricted (Type-0) grammar editor with bounded derivation search
+            - Multi-tape Turing Machines (1–4 tapes), a reusable submachine library for TM/PDA fragments, and a PDA branch explorer
+
+            ### Security & reliability
+            - Content-Security-Policy locked down (was disabled entirely in v0.1.0)
+            - Per-launch bearer token authenticates the desktop app to its local Python sidecar
+            - LLM API keys now stored in the OS keychain instead of localStorage
+            - Retry-with-backoff and structured logging for all LLM calls (Gemini/OpenAI/Groq/Ollama/custom)
+
+            ### Accessibility & performance
+            - ARIA labels on states/transitions, keyboard shortcut to add a state, fixed arrow-key focus conflict
+            - Windowed rendering for long Turing Machine tape histories
+            - New in-app Help Center
+
+            ### Also in this release
+            - Auto-updater wired in (Tauri v2 updater plugin)
+            - Lesson Builder redesign with lesson history
+            - Unified Settings (theme, custom LLM providers, submachine library manager)
+            - 254 frontend + 56 backend automated tests (up from none at v0.1.0)
+
+            **Full diff**: https://github.com/himanshuraiml/autometa/compare/v0.1.0...v0.2.0
+
+            ---
+
+            **macOS**: if Gatekeeper blocks the app, see the README's Gatekeeper bypass instructions.
+            **Windows**: if SmartScreen blocks the installer, see the README's SmartScreen bypass guide.
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
