@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlmodel import Session, select
 
 from ai import generate_lesson, generate_tutor_response
@@ -77,7 +77,7 @@ async def auth_and_request_log(request: Request, call_next):
 
     # /health stays open so the shell can probe readiness before it has
     # delivered the token to the frontend.
-    if settings.auth_token and request.url.path.startswith("/api"):
+    if settings.auth_token and request.url.path.startswith("/api") and request.method != "OPTIONS":
         supplied = request.headers.get("authorization", "")
         expected = f"Bearer {settings.auth_token}"
         if not hmac.compare_digest(supplied, expected):
@@ -407,7 +407,7 @@ class LessonDiagram(BaseModel):
 
 
 class LessonSlide(BaseModel):
-    title: str
+    title: str = ""
     markdown: str = ""
     narration: Optional[str] = None
     diagram: Optional[LessonDiagram] = None
@@ -426,6 +426,18 @@ class LessonSlide(BaseModel):
         if isinstance(v, list):
             return [_coerce_str(item) for item in v]
         return v
+
+    @model_validator(mode="before")
+    @classmethod
+    def _populate_title(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            title = data.get("title")
+            if not title:
+                if data.get("quizQuestion"):
+                    data["title"] = "Concept Check"
+                else:
+                    data["title"] = "Untitled Slide"
+        return data
 
 
 class LessonWorksheetItem(BaseModel):
@@ -876,7 +888,7 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(
-        "main:app",
+        app,
         host=settings.host,
         port=settings.port,
         reload=False,

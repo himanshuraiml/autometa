@@ -1,13 +1,13 @@
 {
   "name": "desktop",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "scripts": {
-    "dev": "tauri dev",
-    "build": "tauri build",
+    "dev": "node scripts/build-backend.cjs --if-missing && tauri dev",
+    "build": "node scripts/build-backend.cjs && tauri build",
     "tauri": "tauri",
-    "build:backend": "../../services/backend/venv/bin/pyinstaller --onefile --clean --name autometa-backend ../../services/backend/main.py"
+    "build:backend": "node scripts/build-backend.cjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.2.0",

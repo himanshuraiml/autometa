@@ -57,12 +57,18 @@ Rules:
 """
 
 
+import re
+
+
 def _extract_json_object(text: str) -> Dict[str, Any]:
     start = text.find("{")
     end = text.rfind("}") + 1
     if start == -1 or end == 0:
         raise ValueError("No JSON object found in model response.")
-    return json.loads(text[start:end])
+    raw_json = text[start:end]
+    # Clean up trailing commas before closing braces/brackets
+    raw_json = re.sub(r',\s*([}\]])', r'\1', raw_json)
+    return json.loads(raw_json, strict=False)
 
 
 SYSTEM_PROMPTS = {
@@ -374,10 +380,12 @@ async def generate_lesson(
         if raw_text:
             try:
                 return _extract_json_object(raw_text)
-            except (ValueError, json.JSONDecodeError):
+            except (ValueError, json.JSONDecodeError) as e:
                 logger.warning(
-                    "External provider %s returned unparseable lesson JSON; falling back to Ollama",
+                    "External provider %s returned unparseable lesson JSON: %s. Raw text: %s",
                     chosen_provider,
+                    str(e),
+                    raw_text,
                 )
 
     async def _lesson_from_ollama(ollama_model: str) -> Optional[Dict[str, Any]]:
@@ -393,8 +401,13 @@ async def generate_lesson(
         raw_text = response.json().get("response", "")
         try:
             return _extract_json_object(raw_text)
-        except (ValueError, json.JSONDecodeError):
-            logger.warning("Ollama model %s returned unparseable lesson JSON", ollama_model)
+        except (ValueError, json.JSONDecodeError) as e:
+            logger.warning(
+                "Ollama model %s returned unparseable lesson JSON: %s. Raw text: %s",
+                ollama_model,
+                str(e),
+                raw_text,
+            )
             return None
 
     try:
