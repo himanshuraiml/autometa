@@ -82,50 +82,30 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: 'AUTOMETA v__VERSION__'
           releaseBody: |
-            ## What's new in v0.2.0
+            ## What's new in v0.2.2
 
-            Since v0.1.0, Autometa grew from a diagram editor into a full automata-theory learning platform.
+            A branding and reliability update on top of v0.2.0.
 
-            ### Practice mode & learning paths
-            - Auto-generated practice exercises (DFA/NFA/PDA/TM/Regex/CFG) with semantic grading — real counterexamples, not diagram-shape matching
-            - Instructor authoring: build exercises and ordered lesson paths, track class progress in a new Gradebook
-            - Per-profile student progress tracking
+            ### New app icon & branding
+            - Fresh Autometa logo across every platform target: macOS, Windows, Android, and iOS app icons regenerated
+            - New logo wired into the in-app sidebar
 
-            ### Project library & collaboration
-            - Save, tag, favorite, and clone projects; browse public projects from other local profiles
-            - Explicit version history with restore/delete, and comment threads on projects
-            - JSON "share package" export/import (self-contained, read-only aware)
+            ### Markdown rendering overhaul
+            - Headers now support levels 1–6 (was capped at `###`)
+            - Nested bullet/numbered lists preserve indentation hierarchy
+            - Added support for `+`/`•` bullets, `*`/`_` italics, inline links, blockquotes, and horizontal rules
+            - Cleaner LaTeX rendering (escaped braces/underscores normalized)
 
-            ### Interoperability
-            - JFLAP `.jff` import/export (DFA/NFA, PDA, TM, Mealy)
-            - Batch Mode: run generated or custom test strings across any automaton type, export CSV/JSON
+            ### Backend reliability
+            - Lesson-generation JSON parsing now tolerates trailing commas and malformed model output instead of failing outright
+            - Richer error logging for unparseable LLM responses (captures the raw text for debugging)
+            - Fixed CORS preflight (`OPTIONS`) requests being incorrectly rejected by the sidecar's bearer-token auth check
+            - Lesson slide titles are now optional and auto-populated instead of causing validation errors
 
-            ### Deeper automaton theory tools
-            - New "Compare & Combine" workspace: language equivalence, union/intersection/complement, NFA concatenation/star/reverse
-            - CFG → CNF/GNF/PDA conversions and left-recursion/left-factoring elimination, all with step-by-step walkthroughs
-            - DFA → Regex walkthrough, NFA ↔ regular-grammar conversions
-            - Ambiguity detection with side-by-side derivation trees, CFG simplification (epsilon/unit/useless-symbol removal), grammar classification
-            - Unrestricted (Type-0) grammar editor with bounded derivation search
-            - Multi-tape Turing Machines (1–4 tapes), a reusable submachine library for TM/PDA fragments, and a PDA branch explorer
+            ### Build tooling
+            - Desktop build now auto-detects the host target triple when compiling the Python sidecar, replacing a hardcoded build path
 
-            ### Security & reliability
-            - Content-Security-Policy locked down (was disabled entirely in v0.1.0)
-            - Per-launch bearer token authenticates the desktop app to its local Python sidecar
-            - LLM API keys now stored in the OS keychain instead of localStorage
-            - Retry-with-backoff and structured logging for all LLM calls (Gemini/OpenAI/Groq/Ollama/custom)
-
-            ### Accessibility & performance
-            - ARIA labels on states/transitions, keyboard shortcut to add a state, fixed arrow-key focus conflict
-            - Windowed rendering for long Turing Machine tape histories
-            - New in-app Help Center
-
-            ### Also in this release
-            - Auto-updater wired in (Tauri v2 updater plugin)
-            - Lesson Builder redesign with lesson history
-            - Unified Settings (theme, custom LLM providers, submachine library manager)
-            - 254 frontend + 56 backend automated tests (up from none at v0.1.0)
-
-            **Full diff**: https://github.com/himanshuraiml/autometa/compare/v0.1.0...v0.2.0
+            **Full diff**: https://github.com/himanshuraiml/autometa/compare/v0.2.0...v0.2.2
 
             ---
 
