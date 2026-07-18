@@ -1,4 +1,5 @@
-import { Sparkles, Home, Tv, Blocks, BookOpen, GraduationCap, Library, HelpCircle, Settings, Plus, GitCompare } from 'lucide-react';
+import { Home, Tv, Blocks, BookOpen, GraduationCap, Library, HelpCircle, Settings, Plus, GitCompare } from 'lucide-react';
+import logoImg from '../assets/logo.jpg';
 
 export type AppView = 'dashboard' | 'graph' | 'grammars' | 'lessons' | 'practice' | 'library' | 'operations';
 
@@ -26,8 +27,8 @@ export const NavSidebar = ({ activeView, onNavigate, onOpenHelp, onOpenSettings,
     {/* Brand Logo & Title */}
     <div className="px-8 mb-8">
       <div className="flex items-center gap-3 mb-1">
-        <div className="p-1.5 bg-[var(--color-ui-accent)] rounded-lg text-[var(--bg-primary)]">
-          <Sparkles className="w-4 h-4" />
+        <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center p-0.5 border border-[var(--border-color)] shadow-sm">
+          <img src={logoImg} alt="Autometa Logo" className="w-full h-full object-contain rounded" />
         </div>
         <h1 className="font-extrabold text-lg tracking-wider text-[var(--color-ui-accent)] uppercase">
           Autometa
