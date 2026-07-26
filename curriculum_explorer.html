@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SRM B.Tech Artificial Intelligence – Curriculum Explorer</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f1f5f9;color:#0f172a;min-height:100vh}
+
+/* ── Header ── */
+.hdr{background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 55%,#2563eb 100%);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:14px;box-shadow:0 4px 16px rgba(0,0,0,.3);position:sticky;top:0;z-index:500}
+.hdr-logo{width:48px;height:48px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;padding:3px}
+.hdr-logo img{width:100%;height:100%;object-fit:contain}
+.hdr-text h1{font-size:14px;font-weight:800;line-height:1.2}
+.hdr-text p{font-size:10px;opacity:.7;margin-top:1px}
+.hdr-hint{margin-left:auto;font-size:9.5px;opacity:.55;text-align:right;line-height:1.7}
+
+/* ── Legend ── */
+.leg{display:flex;flex-wrap:wrap;gap:7px;align-items:center;padding:6px 18px;background:#fff;border-bottom:1px solid #e2e8f0;font-size:9.5px;position:sticky;top:68px;z-index:490}
+.leg span{display:flex;align-items:center;gap:3px;color:#475569;white-space:nowrap}
+.ld{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.lsep{width:1px;height:14px;background:#e2e8f0;margin:0 1px}
+
+/* ── Controls (Types) ── */
+.ctrl{background:#fff;border-bottom:1px solid #e2e8f0;padding:8px 18px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;position:sticky;top:103px;z-index:480}
+.flbl{font-size:9.5px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-right:2px}
+.fb{padding:3px 10px;border-radius:20px;border:none;cursor:pointer;font-size:9.5px;font-weight:700;transition:all .15s;letter-spacing:.2px}
+.fb[data-t="ALL"]{background:#0f172a;color:#fff}
+.fb[data-t="BS"]{background:#dcfce7;color:#166534} .fb[data-t="BS"].on{background:#16a34a;color:#fff}
+.fb[data-t="ES"]{background:#dbeafe;color:#1e40af} .fb[data-t="ES"].on{background:#1d4ed8;color:#fff}
+.fb[data-t="PC"]{background:#ede9fe;color:#5b21b6} .fb[data-t="PC"].on{background:#7c3aed;color:#fff}
+.fb[data-t="PE"]{background:#fef3c7;color:#92400e} .fb[data-t="PE"].on{background:#d97706;color:#fff}
+.fb[data-t="OE"]{background:#fee2e2;color:#991b1b} .fb[data-t="OE"].on{background:#dc2626;color:#fff}
+.fb[data-t="PR"]{background:#ffedd5;color:#9a3412} .fb[data-t="PR"].on{background:#ea580c;color:#fff}
+.fb[data-t="HUM"]{background:#ccfbf1;color:#134e4a} .fb[data-t="HUM"].on{background:#0d9488;color:#fff}
+.fb[data-t="MC"]{background:#f1f5f9;color:#64748b} .fb[data-t="MC"].on{background:#64748b;color:#fff}
+.fb[data-t="ALL"].on{outline:2px solid #7c3aed;outline-offset:2px}
+.srch{margin-left:auto;padding:5px 11px;border-radius:20px;border:1.5px solid #e2e8f0;font-size:11px;outline:none;width:180px;background:#f8fafc}
+.srch:focus{border-color:#7c3aed}
+
+/* ── Exam Controls ── */
+.ex-ctrl{background:#fff;border-bottom:1px solid #e2e8f0;padding:8px 18px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;position:sticky;top:137px;z-index:475}
+.fb[data-e="ALL"]{background:#475569;color:#fff}
+.fb[data-e="GATE"]{background:#fffbeb;color:#b45309;border:1px solid #fde68a} .fb[data-e="GATE"].on{background:#d97706;color:#fff;border-color:transparent}
+.fb[data-e="IES"]{background:#faf5ff;color:#701a75;border:1px solid #f3e8ff} .fb[data-e="IES"].on{background:#a21caf;color:#fff;border-color:transparent}
+.fb[data-e="Defence"]{background:#f0fdf4;color:#15803d;border:1px solid #dcfce7} .fb[data-e="Defence"].on{background:#16a34a;color:#fff;border-color:transparent}
+.fb[data-e="ALL"].on{outline:2px solid #64748b;outline-offset:2px}
+
+/* ── Credits bar ── */
+.cbar{background:#fff;border-bottom:2px solid #e2e8f0;padding:7px 18px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;position:sticky;top:171px;z-index:470}
+.cc{padding:4px 11px;border-radius:8px;font-weight:700;display:flex;align-items:center;gap:5px}
+.ccn{font-size:16px;font-weight:900;line-height:1}
+.ccl{font-size:8.5px;opacity:.7;text-transform:uppercase;letter-spacing:.4px}
+.cc.tot{background:#0f172a;color:#fff}
+.cc.bs{background:#dcfce7;color:#166534}.cc.es{background:#dbeafe;color:#1e40af}
+.cc.pc{background:#ede9fe;color:#5b21b6}.cc.pe{background:#fef3c7;color:#92400e}
+.cc.oe{background:#fee2e2;color:#991b1b}.cc.pr{background:#ffedd5;color:#9a3412}
+.cc.hum{background:#ccfbf1;color:#134e4a}.cc.mc{background:#f1f5f9;color:#64748b}
+
+/* ── Grid wrapper ── */
+.grid-wrap{overflow-x:auto;padding:14px 18px 40px;transition:padding-right .25s}
+.grid-wrap.panel-open{padding-right:336px}
+.sgrid{display:flex;gap:11px;min-width:max-content;align-items:flex-start}
+
+/* ── Semester column ── */
+.scol{width:192px;flex-shrink:0}
+.shd{text-align:center;margin-bottom:7px}
+.stitle{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#1e293b}
+.smeta{font-size:9px;color:#94a3b8;margin-top:2px}
+.sdiv{height:3px;border-radius:2px;margin-top:5px}
+.scards{display:flex;flex-direction:column;gap:6px;margin-top:7px}
+.cwrap{position:relative}
+.cwrap.has-badge{margin-top:15px}
+
+/* ── Connection badge ── */
+.cbadge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:8.5px;font-weight:700;padding:1px 7px;border-radius:5px;z-index:10;letter-spacing:.2px;border:1.5px solid transparent;pointer-events:none}
+.cbadge.sel{background:#fef9c3;color:#713f12;border-color:#fbbf24}
+.cbadge.pre{background:#ffe4e6;color:#9f1239;border-color:#fb7185}
+.cbadge.pst{background:#dcfce7;color:#14532d;border-color:#4ade80}
+
+/* ── Card ── */
+.card{border-radius:9px;border:2px solid #e2e8f0;padding:8px 10px 8px 12px;cursor:pointer;transition:transform .12s,box-shadow .12s,border-color .18s,opacity .18s,background .18s;position:relative;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.05);user-select:none}
+.card:hover{transform:translateY(-2px);box-shadow:0 5px 16px rgba(0,0,0,.11)}
+.card.dim{opacity:.13}
+.card.pre-hl{border-color:#fb7185!important;box-shadow:0 0 0 3px rgba(251,113,133,.18)!important;background:#fff5f5!important}
+.card.pst-hl{border-color:#4ade80!important;box-shadow:0 0 0 3px rgba(74,222,128,.18)!important;background:#f0fdf4!important}
+.card.sel-hl{border-color:#fbbf24!important;box-shadow:0 0 0 3px rgba(251,191,36,.22)!important;background:#fffbeb!important}
+.card.sel-hl:hover{transform:none}
+.ctop{display:flex;align-items:flex-start;justify-content:space-between;gap:4px;margin-bottom:2px}
+.ctype{font-size:7.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;flex:1}
+.ccr{font-size:8.5px;font-weight:800;padding:1px 5px;border-radius:7px;white-space:nowrap;flex-shrink:0}
+.ccode{font-size:8px;color:#94a3b8;font-family:monospace;margin-bottom:2px}
+.cname{font-size:10.5px;font-weight:700;line-height:1.35;color:#0f172a}
+.cltpc{font-size:8.5px;color:#b0bec5;margin-top:4px;font-family:monospace}
+.cpre{display:inline-block;font-size:7px;font-weight:700;padding:1px 4px;border-radius:3px;margin-top:3px;letter-spacing:.3px}
+
+/* type colours */
+.t-BS{border-left:4px solid #22c55e}.t-BS .ctype,.t-BS .ccr{color:#166534;background:#dcfce7}.t-BS .cpre{background:#dcfce7;color:#166534}
+.t-ES{border-left:4px solid #3b82f6}.t-ES .ctype,.t-ES .ccr{color:#1e40af;background:#dbeafe}.t-ES .cpre{background:#dbeafe;color:#1e40af}
+.t-PC{border-left:4px solid #8b5cf6}.t-PC .ctype,.t-PC .ccr{color:#5b21b6;background:#ede9fe}.t-PC .cpre{background:#ede9fe;color:#5b21b6}
+.t-PE{border-left:4px solid #f59e0b}.t-PE .ctype,.t-PE .ccr{color:#92400e;background:#fef3c7}.t-PE .cpre{background:#fef3c7;color:#92400e}
+.t-OE{border-left:4px solid #ef4444}.t-OE .ctype,.t-OE .ccr{color:#991b1b;background:#fee2e2}.t-OE .cpre{background:#fee2e2;color:#991b1b}
+.t-PR{border-left:4px solid #f97316}.t-PR .ctype,.t-PR .ccr{color:#9a3412;background:#ffedd5}.t-PR .cpre{background:#ffedd5;color:#9a3412}
+.t-HUM{border-left:4px solid #14b8a6}.t-HUM .ctype,.t-HUM .ccr{color:#134e4a;background:#ccfbf1}.t-HUM .cpre{background:#ccfbf1;color:#134e4a}
+.t-MC{border-left:4px solid #94a3b8}.t-MC .ctype,.t-MC .ccr{color:#475569;background:#f1f5f9}.t-MC .cpre{background:#f1f5f9;color:#475569}
+
+/* ── SVG overlay ── */
+#cSVG{position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:450}
+
+/* ── Tooltip ── */
+.tip{position:fixed;z-index:600;background:#0f172a;color:#f8fafc;border-radius:13px;padding:12px 14px;width:255px;pointer-events:none;box-shadow:0 16px 48px rgba(0,0,0,.4);display:none;border:1px solid #1e293b;font-size:11px}
+.tip.vis{display:block}
+.tip-title{font-size:12px;font-weight:800;margin-bottom:5px;line-height:1.3}
+.tip-s{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#94a3b8;margin:6px 0 3px}
+.tip-pills{display:flex;flex-wrap:wrap;gap:3px}
+.tp{padding:2px 6px;border-radius:7px;font-size:9px;font-weight:600}
+.tp.pre{background:#3f1219;color:#fca5a5}
+.tp.pst{background:#052e16;color:#86efac}
+.tj{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #1e293b}
+.tj:last-child{border:none;padding-bottom:0}
+.tjn{font-size:10px;color:#e2e8f0}
+.tjs{font-size:9.5px;font-weight:800;color:#4ade80}
+.tip-hint{font-size:8px;color:#475569;margin-top:6px;text-align:center}
+
+/* ── Side Panel ── */
+.panel{position:fixed;top:0;right:0;height:100vh;width:320px;background:#fff;border-left:1.5px solid #e2e8f0;box-shadow:-8px 0 36px rgba(0,0,0,.13);overflow-y:auto;transform:translateX(320px);transition:transform .25s cubic-bezier(.4,0,.2,1);z-index:460}
+.panel.open{transform:translateX(0)}
+
+.ph{padding:16px 16px 0}
+.ph-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.ph-code{font-size:10px;font-family:monospace;color:#94a3b8;font-weight:600}
+.ph-badge{font-size:9px;font-weight:800;padding:2px 8px;border-radius:8px;white-space:nowrap}
+.ph-name{font-size:18px;font-weight:900;color:#0f172a;line-height:1.2;margin-bottom:4px}
+.ph-sub{font-size:10px;color:#64748b;margin-bottom:12px;line-height:1.5}
+.p-close{background:#f1f5f9;border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:13px;color:#64748b;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
+.p-close:hover{background:#e2e8f0}
+
+.pb{padding:0 16px 20px}
+.p-sec{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#94a3b8;margin:14px 0 7px;display:flex;align-items:center;gap:5px}
+.p-sec-icon{font-size:11px}
+
+/* prereq chain */
+.chain-list{display:flex;flex-direction:column;gap:4px}
+.chain-item{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:7px;cursor:pointer;transition:background .12s;border:1.5px solid transparent}
+.chain-item:hover{background:#f8fafc;border-color:#e2e8f0}
+.chain-item.chain-sel{background:#fffbeb;border-color:#fbbf24}
+.chain-item.chain-pre{background:#fff5f5;border-color:#fecaca}
+.chain-sem{font-size:8.5px;font-weight:800;padding:2px 5px;border-radius:5px;white-space:nowrap;flex-shrink:0}
+.chain-name{font-size:10px;font-weight:600;color:#0f172a;flex:1;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chain-arr{font-size:10px;color:#94a3b8;flex-shrink:0}
+
+/* details grid */
+.dtl-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dtl-box{background:#f8fafc;border-radius:8px;padding:8px 10px;border:1.5px solid #e2e8f0}
+.dtl-v{font-size:13px;font-weight:800;color:#0f172a;margin-bottom:1px}
+.dtl-l{font-size:8px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px}
+
+/* prereq / dependent pills */
+.p-pills{display:flex;flex-direction:column;gap:5px}
+.p-pill{display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:8px;cursor:pointer;transition:background .12s;border:1.5px solid #e2e8f0;background:#f8fafc}
+.p-pill:hover{border-color:#cbd5e1;background:#fff}
+.pp-code{font-size:8.5px;font-family:monospace;color:#94a3b8;font-weight:600;white-space:nowrap}
+.pp-sem{font-size:8px;font-weight:800;padding:1px 5px;border-radius:4px;white-space:nowrap}
+.pp-name{font-size:10px;font-weight:600;color:#0f172a;flex:1;line-height:1.3}
+.pp-arr{font-size:10px;color:#94a3b8;flex-shrink:0}
+
+/* jobs in panel */
+.job-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:7px 10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#f8fafc;margin-bottom:5px}
+.job-row:last-child{margin-bottom:0}
+.jr-left{display:flex;flex-direction:column;gap:1px}
+.jr-role{font-size:10.5px;font-weight:700;color:#0f172a}
+.jr-exp{font-size:8.5px;color:#94a3b8}
+.jr-sal{font-size:11px;font-weight:900;color:#16a34a;white-space:nowrap}
+
+/* panel footer */
+.p-foot{padding:10px 16px 14px;border-top:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;position:sticky;bottom:0;background:#fff}
+.p-foot-info{font-size:9.5px;color:#94a3b8}
+.p-foot-close{padding:6px 14px;border-radius:20px;border:1.5px solid #e2e8f0;cursor:pointer;font-size:11px;font-weight:700;color:#64748b;background:#f8fafc;transition:background .12s}
+.p-foot-close:hover{background:#e2e8f0}
+
+.desc-box{font-size:11.5px;color:#475569;line-height:1.65;background:#f8fafc;border-radius:9px;padding:10px 12px;border:1.5px solid #e2e8f0}
+.p-none{font-size:10px;color:#94a3b8;font-style:italic}
+
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:#f1f5f9}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px}
+
+/* ── NPTEL / SWAYAM ── */
+.fb[data-t="NPTEL"]{background:#eef2ff;color:#3730a3}.fb[data-t="NPTEL"].on{background:#4f46e5;color:#fff}
+.nptel-dot{display:inline-block;font-size:7px;font-weight:900;padding:1px 5px;border-radius:3px;margin-top:3px;background:#3730a3;color:#fff;letter-spacing:.3px}
+.nptel-card{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:8px;border:1.5px solid #c7d2fe;background:#eef2ff;margin-bottom:5px}
+.nptel-card:last-child{margin-bottom:0}
+.nptel-logo{width:24px;height:24px;background:#3730a3;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:8px;font-weight:900;color:#fff;line-height:1}
+.nptel-info{flex:1;min-width:0}
+.nptel-title{font-size:10px;font-weight:700;color:#1e1b4b;line-height:1.3;margin-bottom:2px}
+.nptel-meta{font-size:8.5px;color:#4338ca;font-weight:600}
+.nptel-link{font-size:8px;font-weight:800;color:#fff;text-decoration:none;padding:3px 7px;border-radius:5px;background:#4f46e5;white-space:nowrap;flex-shrink:0;display:inline-flex;align-items:center;gap:2px;margin-top:2px}
+.nptel-link:hover{background:#3730a3}
+
+/* ── Exam badges inside cards ── */
+.exam-badge{display:inline-block;font-size:7px;font-weight:900;padding:1px 5px;border-radius:3px;margin-top:3px;margin-right:3px;letter-spacing:.3px}
+.exam-badge.gate{background:#fffbeb;color:#b45309;border:1px solid #fbbf24}
+.exam-badge.ies{background:#faf5ff;color:#701a75;border:1px solid #d8b4fe}
+.exam-badge.defence{background:#f0fdf4;color:#15803d;border:1px solid #6ee7b7}
+</style>
+</head>
+<body>
+
+<!-- SVG connection lines overlay -->
+<svg id="cSVG">
+  <defs>
+    <marker id="a-pre" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#fb7185"/>
+    </marker>
+    <marker id="a-pst" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4ade80"/>
+    </marker>
+  </defs>
+</svg>
+
+<!-- Header -->
+<div class="hdr">
+  <div class="hdr-logo"><img src="https://tse3.mm.bing.net/th/id/OIP.1ZZ4lCFzy3wzVPGCeHgj8gHaDo?r=0&cb=thfc1falcon2&w=768&h=377&rs=1&pid=ImgDetMain&o=7&rm=3" alt="SRM Logo"></div>
+  <div class="hdr-text">
+    <h1>SRM Institute of Science and Technology – Tiruchirappalli Campus</h1>
+    <p>B.Tech. Artificial Intelligence &nbsp;·&nbsp; Regulations 2021</p>
+  </div>
+  <div class="hdr-hint">Hover → connections &amp; tooltip<br>Click → full details panel</div>
+</div>
+
+<!-- Legend -->
+<div class="leg">
+  <span style="font-weight:800;color:#0f172a;font-size:10px">LEGEND</span><div class="lsep"></div>
+  <span><span class="ld" style="background:#22c55e"></span>Basic Science</span>
+  <span><span class="ld" style="background:#3b82f6"></span>Engg Science</span>
+  <span><span class="ld" style="background:#8b5cf6"></span>Program Core</span>
+  <span><span class="ld" style="background:#f59e0b"></span>Pro. Elective</span>
+  <span><span class="ld" style="background:#ef4444"></span>Open Elective</span>
+  <span><span class="ld" style="background:#f97316"></span>Project</span>
+  <span><span class="ld" style="background:#14b8a6"></span>Humanities</span>
+  <span><span class="ld" style="background:#94a3b8"></span>Non-Credit</span>
+  <div class="lsep"></div>
+  <span><svg width="20" height="8" style="vertical-align:middle"><line x1="0" y1="4" x2="14" y2="4" stroke="#fb7185" stroke-width="2" stroke-dasharray="3,2"/><polygon points="11,1 19,4 11,7" fill="#fb7185"/></svg> Prereq</span>
+  <span><svg width="20" height="8" style="vertical-align:middle"><line x1="0" y1="4" x2="14" y2="4" stroke="#4ade80" stroke-width="2" stroke-dasharray="3,2"/><polygon points="11,1 19,4 11,7" fill="#4ade80"/></svg> Postreq</span>
+</div>
+
+<!-- Controls (Types) -->
+<div class="ctrl">
+  <span class="flbl">Filter:</span>
+  <button class="fb on" data-t="ALL">All Courses</button>
+  <button class="fb" data-t="BS">Basic Science</button>
+  <button class="fb" data-t="ES">Engg Science</button>
+  <button class="fb" data-t="PC">Program Core</button>
+  <button class="fb" data-t="PE">Pro. Elective</button>
+  <button class="fb" data-t="OE">Open Elective</button>
+  <button class="fb" data-t="PR">Project</button>
+  <button class="fb" data-t="HUM">Humanities</button>
+  <button class="fb" data-t="MC">Non-Credit</button>
+  <button class="fb" data-t="NPTEL">⬡ Has NPTEL</button>
+  <input class="srch" type="text" placeholder="🔍  Search course or code…" id="srchBox">
+</div>
+
+<!-- Controls (Exams) -->
+<div class="ex-ctrl" id="examCtrl">
+  <span class="flbl">Exams:</span>
+  <button class="fb on" data-e="ALL">All Exams</button>
+  <button class="fb" data-e="GATE">GATE Mapped</button>
+  <button class="fb" data-e="IES">IES Mapped</button>
+  <button class="fb" data-e="Defence">Defence / DRDO</button>
+</div>
+
+<!-- Credits bar -->
+<div class="cbar" id="cbarEl"></div>
+
+<!-- Grid -->
+<div class="grid-wrap" id="gridWrap">
+  <div class="sgrid" id="sgrid"></div>
+</div>
+
+<!-- Tooltip -->
+<div class="tip" id="tipEl"></div>
+
+<!-- Side Panel -->
+<div class="panel" id="panel">
+  <div class="ph">
+    <div class="ph-top">
+      <div>
+        <div class="ph-code" id="p-code"></div>
+        <div class="ph-badge" id="p-badge"></div>
+      </div>
+      <button class="p-close" id="p-close-btn">✕</button>
+    </div>
+    <div class="ph-name" id="p-name"></div>
+    <div class="ph-sub" id="p-sub"></div>
+  </div>
+  <div class="pb" id="panel-body"></div>
+  <div class="p-foot" id="panel-foot"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  TYPE META
+// ═══════════════════════════════════════════
+const TM = {
+  BS: {l:'Basic Science',   c:'#166534',bg:'#dcfce7',b:'#22c55e'},
+  ES: {l:'Engg Science',    c:'#1e40af',bg:'#dbeafe',b:'#3b82f6'},
+  PC: {l:'Program Core',    c:'#5b21b6',bg:'#ede9fe',b:'#8b5cf6'},
+  PE: {l:'Pro. Elective',   c:'#92400e',bg:'#fef3c7',b:'#f59e0b'},
+  OE: {l:'Open Elective',   c:'#991b1b',bg:'#fee2e2',b:'#ef4444'},
+  PR: {l:'Project',         c:'#9a3412',bg:'#ffedd5',b:'#f97316'},
+  HUM:{l:'Humanities',      c:'#134e4a',bg:'#ccfbf1',b:'#14b8a6'},
+  MC: {l:'Non-Credit',      c:'#475569',bg:'#f1f5f9',b:'#94a3b8'},
+};
+const SEM_C=['#22c55e','#3b82f6','#8b5cf6','#f59e0b','#ef4444','#06b6d4','#ec4899','#f97316'];
+
+// ═══════════════════════════════════════════
+//  COURSE DATA WITH EXAM MAPPINGS
+// ═══════════════════════════════════════════
+const DB = [
+// SEM 1
+{id:'LEH101',code:'21LEH101T',name:'Communicative English',sem:1,type:'HUM',L:2,T:1,P:0,C:3,prereqs:[],
+ desc:'Professional writing, verbal communication, presentation skills, and technical English — essential for client-facing AI roles and global teamwork.',
+ jobs:[{role:'Technical Writer – AI Products',exp:'0–2 yrs',sal:'₹3.5–7 LPA'},{role:'AI Product Communicator',exp:'3–5 yrs',sal:'₹10–18 LPA'},{role:'AI Sales / Pre-Sales Engineer',exp:'4–7 yrs',sal:'₹15–28 LPA'}],
+ nptel:[{n:'Soft Skills',i:'IIT Roorkee',w:6},{n:'Technical English for Engineers',i:'IIT Bombay',w:4}],
+ exams:[]},
+{id:'MAB101',code:'21MAB101T',name:'Calculus and Linear Algebra',sem:1,type:'BS',L:3,T:1,P:0,C:4,prereqs:[],
+ desc:'Differentiation, integration, matrix algebra, eigenvectors — the mathematical spine of every ML/DL algorithm, from gradient descent to PCA.',
+ jobs:[{role:'ML Research Scientist',exp:'PhD + 2 yrs',sal:'₹25–60 LPA'},{role:'Quantitative Analyst (HFT)',exp:'3–5 yrs',sal:'₹25–70 LPA'},{role:'Data Scientist',exp:'0–2 yrs',sal:'₹6–14 LPA'},{role:'AI Researcher (ISRO/IIT lab)',exp:'PhD',sal:'₹20–50 LPA'}],
+ nptel:[{n:'Mathematics for Machine Learning',i:'IIT Kharagpur',w:12},{n:'Linear Algebra',i:'IIT Bombay',w:4}],
+ exams:['GATE', 'IES']},
+{id:'PYB102',code:'21PYB102J',name:'Semiconductor Physics & Computational Methods',sem:1,type:'BS',L:3,T:1,P:2,C:5,prereqs:[],
+ desc:'Semiconductor device physics and numerical methods — underpins GPU/TPU architecture, edge AI hardware, and AI accelerator chip design.',
+ jobs:[{role:'AI Chip Design Engineer (NVIDIA/Intel)',exp:'3–5 yrs',sal:'₹25–55 LPA'},{role:'Embedded / TinyML Developer',exp:'2–4 yrs',sal:'₹8–20 LPA'},{role:'IoT-AI Edge Engineer',exp:'2–4 yrs',sal:'₹8–18 LPA'}],
+ nptel:[{n:'Semiconductor Device Physics',i:'IIT Bombay',w:12},{n:'Computational Methods in Engineering',i:'IIT Delhi',w:8}],
+ exams:['Defence']},
+{id:'MES102',code:'21MES102L',name:'Engineering Graphics and Design',sem:1,type:'ES',L:0,T:0,P:4,C:2,prereqs:[],
+ desc:'2D/3D technical drawing and CAD tools — builds spatial reasoning used in AR/VR UI, robotics, and AI-powered CAD automation.',
+ jobs:[{role:'AR/VR Developer',exp:'2–4 yrs',sal:'₹8–20 LPA'},{role:'Robotics Design Engineer',exp:'3–5 yrs',sal:'₹10–24 LPA'}],
+ nptel:[{n:'Engineering Drawing and Graphics',i:'IIT Roorkee',w:8}],
+ exams:[]},
+{id:'EES101',code:'21EES101T',name:'Electrical and Electronics Engineering',sem:1,type:'ES',L:3,T:1,P:0,C:4,prereqs:['PYB102'],
+ desc:'Circuit theory, analog/digital electronics — foundation for AI hardware, sensor interfacing, and smart embedded systems.',
+ jobs:[{role:'Robotics & Automation Engineer',exp:'2–4 yrs',sal:'₹8–20 LPA'},{role:'IoT Systems Engineer',exp:'2–4 yrs',sal:'₹7–16 LPA'},{role:'Hardware AI Engineer',exp:'4–7 yrs',sal:'₹18–35 LPA'}],
+ nptel:[{n:'Basic Electronics',i:'IIT Roorkee',w:12},{n:'Electrical Technology',i:'IIT Kharagpur',w:12}],
+ exams:['IES', 'Defence']},
+{id:'CSS101',code:'21CSS101J',name:'Programming for Problem Solving',sem:1,type:'ES',L:3,T:0,P:2,C:4,prereqs:[],
+ desc:'C programming, algorithmic thinking, structured problem solving — the first step into software engineering and AI development careers.',
+ jobs:[{role:'Junior Software Developer',exp:'0–1 yr',sal:'₹3–7 LPA'},{role:'C/C++ Systems Developer',exp:'2–4 yrs',sal:'₹7–18 LPA'},{role:'AI Software Engineer (entry)',exp:'0–2 yrs',sal:'₹6–15 LPA'}],
+ nptel:[{n:'Problem Solving through Programming in C',i:'IIT Kharagpur',w:8},{n:'Introduction to Programming in C',i:'IIT Kanpur',w:4}],
+ exams:['GATE', 'IES']},
+{id:'CYM101',code:'21CYM101T',name:'Environmental Science',sem:1,type:'MC',L:1,T:0,P:0,C:0,prereqs:[],
+ desc:'Mandatory course on ecology, pollution, sustainability, and green computing for responsible engineering practice.',
+ jobs:[{role:'Sustainability Tech Analyst',exp:'3–5 yrs',sal:'₹7–15 LPA'}],
+ nptel:[{n:'Environmental Science and Engineering',i:'IIT Bombay',w:12}],
+ exams:[]},
+{id:'PDM101',code:'21PDM101L',name:'Professional Skills and Practices',sem:1,type:'MC',L:0,T:0,P:2,C:0,prereqs:[],
+ desc:'Workplace readiness: time management, teamwork, ethics, and professional conduct fundamentals.',
+ jobs:[{role:'All professional roles',exp:'Any',sal:'Career enabler'}],
+ nptel:[{n:'Soft Skills',i:'IIT Roorkee',w:6}],
+ exams:[]},
+{id:'LEM101',code:'21LEM101T',name:'Constitution of India',sem:1,type:'MC',L:1,T:0,P:0,C:0,prereqs:[],
+ desc:'Indian constitutional law, fundamental rights, and civic duties — relevant for AI policy, data governance, and legal-tech roles.',
+ jobs:[{role:'AI Policy Analyst',exp:'4–6 yrs',sal:'₹10–22 LPA'}],
+ nptel:[],
+ exams:['Defence']},
+
+// SEM 2
+{id:'LEH102',code:'21LEH102T',name:'Foreign Language (Chinese/French/Japanese/German…)',sem:2,type:'HUM',L:2,T:1,P:0,C:3,prereqs:['LEH101'],
+ desc:'Proficiency in a global language — opens doors to Japanese / Chinese AI firms (Sony, Baidu, Toyota) and international research collaborations.',
+ jobs:[{role:'AI Solution Architect – Global MNC',exp:'5–8 yrs',sal:'₹28–60 LPA'},{role:'AI Localisation / NLP Engineer',exp:'2–4 yrs',sal:'₹8–18 LPA'}],
+ nptel:[{n:'German Language for Beginners',i:'IIT Madras',w:8},{n:'French Language — Basic Course',i:'IIT Roorkee',w:8}],
+ exams:[]},
+{id:'GNH101',code:'21GNH101J',name:'Philosophy of Engineering',sem:2,type:'HUM',L:1,T:0,P:2,C:2,prereqs:[],
+ desc:'Ethics of technology, responsible innovation, and AI value alignment — critical for designing unbiased, trustworthy AI systems.',
+ jobs:[{role:'AI Ethics Officer (Google/Meta)',exp:'6–9 yrs',sal:'₹30–65 LPA'},{role:'Responsible AI Researcher',exp:'4–7 yrs',sal:'₹18–40 LPA'}],
+ nptel:[{n:'Philosophy of Science',i:'IIT Madras',w:8}],
+ exams:[]},
+{id:'MAB102',code:'21MAB102T',name:'Advanced Calculus and Complex Analysis',sem:2,type:'BS',L:3,T:1,P:0,C:4,prereqs:['MAB101'],
+ desc:'Multivariable calculus, complex functions, Fourier series — enables understanding of convolutional layers, signal processing, and spectral analysis.',
+ jobs:[{role:'Signal / Audio AI Engineer',exp:'3–5 yrs',sal:'₹12–28 LPA'},{role:'ML Math Researcher',exp:'PhD',sal:'₹22–50 LPA'}],
+ nptel:[{n:'Advanced Engineering Mathematics',i:'IIT Kharagpur',w:12}],
+ exams:['GATE', 'IES']},
+{id:'CYB101',code:'21CYB101J',name:'Chemistry',sem:2,type:'BS',L:3,T:1,P:2,C:5,prereqs:[],
+ desc:'Molecular chemistry, materials science fundamentals — relevant to AI in pharmaceuticals, material discovery, and lab automation.',
+ jobs:[{role:'AI in Drug Discovery Scientist',exp:'4–6 yrs',sal:'₹15–35 LPA'},{role:'Materials AI Researcher',exp:'PhD',sal:'₹22–48 LPA'}],
+ nptel:[{n:'Engineering Chemistry',i:'IIT Roorkee',w:12}],
+ exams:['Defence']},
+{id:'BTB102',code:'21BTB102T',name:'Intro to Computational Biology',sem:2,type:'BS',L:2,T:0,P:0,C:2,prereqs:[],
+ desc:'Biology + computation: sequence analysis, bioinformatics pipelines — foundation for AI in healthcare, genomics, and drug discovery.',
+ jobs:[{role:'Bioinformatics Engineer',exp:'2–4 yrs',sal:'₹10–24 LPA'},{role:'Healthcare AI Scientist',exp:'4–6 yrs',sal:'₹16–35 LPA'},{role:'Genomics Data Analyst',exp:'2–4 yrs',sal:'₹8–18 LPA'}],
+ nptel:[{n:'Introduction to Bioinformatics',i:'IIT Delhi',w:8}],
+ exams:[]},
+{id:'AIS101',code:'21AIS101J',name:'Foundation of Data Analysis',sem:2,type:'ES',L:2,T:0,P:2,C:3,prereqs:['CSS101'],
+ desc:'Descriptive statistics, data visualization (Python/R), exploratory data analysis — the gateway to data science and analytics careers.',
+ jobs:[{role:'Business / BI Analyst',exp:'0–2 yrs',sal:'₹4–10 LPA'},{role:'Analytics Engineer',exp:'3–5 yrs',sal:'₹12–26 LPA'},{role:'Data Scientist (junior)',exp:'0–2 yrs',sal:'₹6–14 LPA'}],
+ nptel:[{n:'Introduction to Data Analytics',i:'IIT Guwahati',w:8}],
+ exams:['GATE']},
+{id:'MES101',code:'21MES101L',name:'Basic Civil & Mechanical Workshop',sem:2,type:'ES',L:0,T:0,P:4,C:2,prereqs:[],
+ desc:'Hands-on fabrication, measurement, and workshop practices — develops physical prototyping skills for robotics and maker projects.',
+ jobs:[{role:'Robotics Prototype Engineer',exp:'2–4 yrs',sal:'₹6–15 LPA'}],
+ nptel:[],
+ exams:[]},
+{id:'PDM102',code:'21PDM102L',name:'General Aptitude',sem:2,type:'MC',L:0,T:0,P:2,C:0,prereqs:[],
+ desc:'Quantitative ability, logical reasoning for campus placements, GATE, and GRE preparation.',
+ jobs:[{role:'All placement roles',exp:'Any',sal:'Placement enabler'}],
+ nptel:[],
+ exams:['GATE', 'IES', 'Defence']},
+{id:'GNM101',code:'21GNM101L',name:'Physical & Mental Health (Yoga / NSS / NCC / NSO)',sem:2,type:'MC',L:0,T:0,P:2,C:0,prereqs:[],
+ desc:'Holistic development through physical fitness and community/social service activities.',
+ jobs:[{role:'Wellbeing Tech founder',exp:'5+ yrs',sal:'Variable + equity'}],
+ nptel:[],
+ exams:[]},
+
+// SEM 3
+{id:'MAB201',code:'21MAB201T',name:'Transforms and Boundary Value Problems',sem:3,type:'BS',L:3,T:1,P:0,C:4,prereqs:['MAB102'],
+ desc:'Laplace/Fourier transforms, PDEs — enables image/audio signal processing, JPEG compression, and audio-to-text AI pipelines.',
+ jobs:[{role:'Computer Vision Engineer',exp:'3–5 yrs',sal:'₹14–32 LPA'},{role:'Audio/Speech AI Engineer (Alexa team)',exp:'4–6 yrs',sal:'₹22–45 LPA'},{role:'Signal Processing Engineer',exp:'3–5 yrs',sal:'₹12–26 LPA'}],
+ nptel:[{n:'Transform Calculus and its Applications in Differential Equations',i:'IIT Kharagpur',w:12}],
+ exams:['GATE', 'IES']},
+{id:'DCS201',code:'21DCS201P',name:'Design Thinking and Methodology',sem:3,type:'ES',L:1,T:2,P:0,C:3,prereqs:[],
+ desc:'Human-centred design, empathy mapping, prototyping — the innovation framework used by every top AI product team globally.',
+ jobs:[{role:'AI Product Manager',exp:'4–6 yrs',sal:'₹20–40 LPA'},{role:'UX Researcher – AI Products',exp:'3–5 yrs',sal:'₹12–25 LPA'},{role:'Innovation Consultant (McKinsey/BCG)',exp:'5–8 yrs',sal:'₹25–55 LPA'}],
+ nptel:[{n:'Design Thinking — A Primer',i:'IIT Bombay',w:8}],
+ exams:[]},
+{id:'CSS201',code:'21CSS201T',name:'Computer Organization and Architecture',sem:3,type:'ES',L:3,T:1,P:0,C:4,prereqs:['CSS101'],
+ desc:'CPU pipelines, memory hierarchy, GPU architecture — essential for optimising AI model inference on edge and cloud devices.',
+ jobs:[{role:'AI Hardware Architect (Qualcomm/AMD)',exp:'5–8 yrs',sal:'₹28–60 LPA'},{role:'Systems Software Engineer',exp:'3–5 yrs',sal:'₹12–28 LPA'},{role:'Embedded / TinyML Developer',exp:'3–5 yrs',sal:'₹10–24 LPA'}],
+ nptel:[{n:'Computer Organization and Architecture',i:'IIT Madras',w:12}],
+ exams:['GATE', 'IES', 'Defence']},
+{id:'CSC201',code:'21CSC201J',name:'Data Structures and Algorithms',sem:3,type:'PC',L:3,T:0,P:2,C:4,prereqs:['CSS101'],
+ desc:'Arrays, trees, graphs, DP, sorting — the single most-tested skill in FAANG/MANGA interviews. Core to AI infrastructure engineering.',
+ jobs:[{role:'Software Engineer – FAANG/MANGA',exp:'0–2 yrs',sal:'₹28–65 LPA'},{role:'Backend Engineer (Tier-1 startup)',exp:'2–4 yrs',sal:'₹12–30 LPA'},{role:'AI Infrastructure Engineer',exp:'3–5 yrs',sal:'₹18–40 LPA'}],
+ nptel:[{n:'Data Structures and Algorithms',i:'IIT Madras',w:8},{n:'Programming, Data Structures and Algorithms using Python',i:'IIT Madras',w:4}],
+ exams:['GATE', 'IES', 'Defence']},
+{id:'CSC101',code:'21CSC101T',name:'Object Oriented Design and Programming',sem:3,type:'PC',L:2,T:1,P:0,C:3,prereqs:['CSS101'],
+ desc:'OOP with Java/Python — encapsulation, inheritance, design patterns used in enterprise AI application architecture and system design.',
+ jobs:[{role:'Java / Python Developer',exp:'0–2 yrs',sal:'₹4–10 LPA'},{role:'AI Application Developer',exp:'3–5 yrs',sal:'₹10–24 LPA'},{role:'Software Architect',exp:'8+ yrs',sal:'₹28–55 LPA'}],
+ nptel:[{n:'Object-Oriented Programming in Java',i:'IIT Bombay',w:8}],
+ exams:['GATE', 'IES']},
+{id:'CSC203',code:'21CSC203P',name:'Advanced Programming Practice',sem:3,type:'PC',L:3,T:1,P:0,C:4,prereqs:['CSC101'],
+ desc:'Python advanced — decorators, async, APIs, testing, NumPy/Pandas. The hands-on coding proficiency course for AI engineering.',
+ jobs:[{role:'Python Developer',exp:'0–2 yrs',sal:'₹4–12 LPA'},{role:'ML / AI Developer',exp:'2–4 yrs',sal:'₹10–24 LPA'},{role:'Full-Stack AI Engineer',exp:'4–6 yrs',sal:'₹18–38 LPA'}],
+ nptel:[{n:'Python for Data Science',i:'IIT Madras',w:4},{n:'Programming in Python',i:'IIT Bombay',w:8}],
+ exams:['GATE', 'IES']},
+{id:'LEM201',code:'21LEM201T',name:'Professional Ethics',sem:3,type:'MC',L:1,T:0,P:0,C:0,prereqs:[],
+ desc:'AI ethics, data privacy (GDPR/PDPA), responsible engineering — shapes the foundation for trustworthy AI development.',
+ jobs:[{role:'AI Ethics / Compliance Officer',exp:'5–8 yrs',sal:'₹15–35 LPA'}],
+ nptel:[{n:'Professional Ethics in Engineering',i:'IIT Kanpur',w:8}],
+ exams:[]},
+{id:'PDM201',code:'21PDM201L',name:'Verbal Reasoning',sem:3,type:'MC',L:0,T:0,P:2,C:0,prereqs:[],
+ desc:'Verbal ability training for GATE, GRE, TOEFL, and campus aptitude tests.',
+ jobs:[{role:'All placement roles',exp:'Any',sal:'Placement enabler'}],
+ nptel:[],
+ exams:['GATE', 'IES', 'Defence']},
+
+// SEM 4
+{id:'MAB304',code:'21MAB304T',name:'Probability and Applied Statistics',sem:4,type:'BS',L:3,T:1,P:0,C:4,prereqs:['MAB201','AIS101'],
+ desc:'Bayesian inference, distributions, hypothesis testing, Markov chains — the mathematical heart of every ML and probabilistic AI algorithm.',
+ jobs:[{role:'Data Scientist (Google/Microsoft)',exp:'3–5 yrs',sal:'₹20–45 LPA'},{role:'ML Research Scientist',exp:'PhD + 2 yrs',sal:'₹45–110 LPA'},{role:'Quantitative Researcher (D.E. Shaw)',exp:'4–7 yrs',sal:'₹30–90 LPA'},{role:'AI Risk Analyst (BFSI)',exp:'3–5 yrs',sal:'₹12–28 LPA'}],
+ nptel:[{n:'Probability and Statistics',i:'IIT Kharagpur',w:8},{n:'Introduction to Probability Theory and Stochastic Processes',i:'IIT Delhi',w:12}],
+ exams:['GATE', 'IES', 'Defence']},
+{id:'CSC204',code:'21CSC204J',name:'Design and Analysis of Algorithms',sem:4,type:'PC',L:3,T:0,P:2,C:4,prereqs:['CSC201'],
+ desc:'Greedy, divide-and-conquer, DP, NP-complexity — optimises AI search, planning, and RL agents. Critical for cracking top tech interviews.',
+ jobs:[{role:'Algorithm Engineer (competitive/FAANG)',exp:'2–4 yrs',sal:'₹22–65 LPA'},{role:'AI Optimization Engineer',exp:'4–6 yrs',sal:'₹20–45 LPA'},{role:'Research Scientist – Combinatorial AI',exp:'PhD',sal:'₹28–60 LPA'}],
+ nptel:[{n:'Design and Analysis of Algorithms',i:'IIT Madras',w:12}],
+ exams:['GATE', 'IES', 'Defence']},
+{id:'AIS201',code:'21AIS201J',name:'Foundation of Artificial Intelligence',sem:4,type:'ES',L:2,T:0,P:2,C:3,prereqs:['AIS101'],
+ desc:'AI search algorithms, CSP, knowledge representation, planning, game playing — the conceptual framework behind every AI system.',
+ jobs:[{role:'AI Engineer (product companies)',exp:'0–2 yrs',sal:'₹8–18 LPA'},{role:'Robotics / Autonomous Systems AI',exp:'4–6 yrs',sal:'₹15–35 LPA'},{role:'AI Consultant',exp:'5–8 yrs',sal:'₹22–50 LPA'}],
+ nptel:[{n:'Artificial Intelligence: Search Methods for Problem Solving',i:'IIT Madras',w:8}],
+ exams:['GATE', 'Defence']},
+{id:'AIC202',code:'21AIC202J',name:'Neural Networks and Machine Learning',sem:4,type:'PC',L:2,T:0,P:2,C:3,prereqs:['AIS201','MAB304','CSC204'],
+ desc:'Supervised / unsupervised learning, neural network architectures, backpropagation, regularisation — the core ML engineering course.',
+ jobs:[{role:'ML Engineer (startup / MNC)',exp:'1–3 yrs',sal:'₹10–25 LPA'},{role:'Senior Data Scientist',exp:'5–7 yrs',sal:'₹22–50 LPA'},{role:'AI/ML Research Scientist',exp:'PhD + 2 yrs',sal:'₹35–90 LPA'},{role:'AI Consultant (Big 4)',exp:'5–8 yrs',sal:'₹20–45 LPA'}],
+ nptel:[{n:'Machine Learning for Engineering and Science Applications',i:'IIT Madras',w:12},{n:'Introduction to Machine Learning',i:'IIT Kharagpur',w:8}],
+ exams:['GATE', 'Defence']},
+{id:'CSC202',code:'21CSC202J',name:'Operating Systems',sem:4,type:'PC',L:3,T:0,P:2,C:4,prereqs:['CSS201'],
+ desc:'Process scheduling, memory management, concurrency — critical for building scalable, low-latency AI inference and ML training infrastructure.',
+ jobs:[{role:'DevOps / MLOps Engineer',exp:'3–5 yrs',sal:'₹12–30 LPA'},{role:'Cloud Infrastructure Engineer (AWS/GCP)',exp:'4–6 yrs',sal:'₹18–40 LPA'},{role:'Platform / Systems Engineer',exp:'4–7 yrs',sal:'₹16–38 LPA'}],
+ nptel:[{n:'Operating System Fundamentals',i:'IIT Roorkee',w:12}],
+ exams:['GATE', 'IES', 'Defence']},
+{id:'PDH209',code:'21PDH209T',name:'Social Engineering',sem:4,type:'HUM',L:2,T:0,P:0,C:2,prereqs:[],
+ desc:'Human behaviour psychology, persuasion, social manipulation awareness — shapes AI UX design and cybersecurity-aware AI system development.',
+ jobs:[{role:'AI Cybersecurity Analyst',exp:'4–6 yrs',sal:'₹14–32 LPA'},{role:'Human-AI Interaction Designer',exp:'4–7 yrs',sal:'₹16–35 LPA'}],
+ nptel:[],
+ exams:['Defence']},
+{id:'PDM202',code:'21PDM202L',name:'Critical and Creative Thinking Skills',sem:4,type:'MC',L:0,T:0,P:2,C:0,prereqs:[],
+ desc:'Problem decomposition, lateral thinking, ideation techniques — essential for AI research and startup innovation.',
+ jobs:[{role:'R&D / Innovation Lead',exp:'6+ yrs',sal:'Career multiplier'}],
+ nptel:[],
+ exams:[]},
+{id:'LEM202',code:'21LEM202T',name:'Universal Human Values – II',sem:4,type:'MC',L:2,T:1,P:0,C:3,prereqs:[],
+ desc:'Ethical human conduct and social harmony — builds value-aligned thinking for responsible AI product development.',
+ jobs:[{role:'AI Ethics Lead',exp:'6–9 yrs',sal:'₹20–45 LPA'}],
+ nptel:[],
+ exams:[]},
+
+// SEM 5
+{id:'MAB302',code:'21MAB302T',name:'Discrete Mathematics',sem:5,type:'BS',L:3,T:1,P:0,C:4,prereqs:['MAB304'],
+ desc:'Graph theory, combinatorics, logic, sets — mathematical foundation for NLP tokenisers, compilers, and knowledge graph AI systems.',
+ jobs:[{role:'NLP / Compiler Research Scientist',exp:'4–7 yrs',sal:'₹22–55 LPA'},{role:'Cryptography / Blockchain Engineer',exp:'4–6 yrs',sal:'₹18–40 LPA'},{role:'AI Planning & Logic Reasoner',exp:'PhD',sal:'₹25–55 LPA'}],
+ nptel:[{n:'Discrete Mathematics',i:'IIT Roorkee',w:12}],
+ exams:['GATE', 'IES', 'Defence']},
+{id:'CSC301',code:'21CSC301T',name:'Formal Language and Automata',sem:5,type:'PC',L:3,T:0,P:0,C:3,prereqs:['CSC204','MAB302'],
+ desc:'Finite automata, regular expressions, context-free grammars, Turing machines — theoretical spine of NLP tokenisers, parsers, and LLMs.',
+ jobs:[{role:'NLP Engineer (Hugging Face / OpenAI)',exp:'3–5 yrs',sal:'₹18–45 LPA'},{role:'LLM / Generative AI Engineer',exp:'2–4 yrs',sal:'₹22–60 LPA'},{role:'Compiler / PL Researcher',exp:'PhD',sal:'₹25–60 LPA'}],
+ nptel:[{n:'Theory of Computation',i:'IIT Bombay',w:12}],
+ exams:['GATE', 'Defence']},
+{id:'CSC205',code:'21CSC205P',name:'Database Management Systems',sem:5,type:'PC',L:3,T:1,P:0,C:4,prereqs:['CSC203'],
+ desc:'SQL, NoSQL, ER modelling, ACID — powers AI data pipelines, feature stores, and enterprise AI backends.',
+ jobs:[{role:'Data Engineer (Databricks / dbt)',exp:'2–4 yrs',sal:'₹10–24 LPA'},{role:'AI Data Pipeline Engineer',exp:'3–5 yrs',sal:'₹16–35 LPA'},{role:'Senior Database Architect',exp:'6–9 yrs',sal:'₹24–48 LPA'}],
+ nptel:[{n:'Database Management System',i:'IIT Kharagpur',w:8}],
+ exams:['GATE', 'IES', 'Defence']},
+{id:'AIC301',code:'21AIC301J',name:'Deep Learning Techniques',sem:5,type:'PC',L:3,T:0,P:2,C:4,prereqs:['AIC202'],
+ desc:'CNNs, RNNs, LSTMs, Transformers, attention, GANs — powers modern AI in computer vision, NLP, and generative AI (ChatGPT, Stable Diffusion).',
+ jobs:[{role:'Deep Learning Engineer',exp:'2–4 yrs',sal:'₹15–35 LPA'},{role:'Computer Vision Engineer (Tesla/Waymo)',exp:'4–7 yrs',sal:'₹30–80 LPA'},{role:'LLM / GenAI Engineer (OpenAI/Anthropic)',exp:'3–6 yrs',sal:'₹40–120 LPA'},{role:'Research Scientist – DL',exp:'PhD + 3 yrs',sal:'₹50–140 LPA'}],
+ nptel:[{n:'Deep Learning',i:'IIT Roorkee',w:12},{n:'Deep Learning for Computer Vision',i:'IIT Madras',w:8}],
+ exams:['GATE', 'Defence']},
+{id:'PE_I',code:'PE–I',name:'Professional Elective I',sem:5,type:'PE',L:3,T:0,P:0,C:3,prereqs:[],
+ desc:'Choose from 30+ options: Stochastic Decision Making, Cognitive Science, IoT Architecture, Text Processing, Image & Video Processing, Speech Recognition, Cloud Computing, Big Data Analytics, etc.',
+ jobs:[{role:'AI Domain Specialist',exp:'3–5 yrs',sal:'₹14–38 LPA'},{role:'Applied / Research Scientist',exp:'4–7 yrs',sal:'₹20–55 LPA'}],
+ nptel:[{n:'Stochastic Decision Making',i:'IIT Bombay',w:8},{n:'Big Data Computing',i:'IIT Kharagpur',w:8},{n:'Cloud Computing',i:'IIT Kharagpur',w:8}],
+ exams:[]},
+{id:'OE_I',code:'OE–I',name:'Open Elective I',sem:5,type:'OE',L:2,T:1,P:0,C:3,prereqs:[],
+ desc:'Cross-departmental elective. AI dept options: Intro to AI, Machine Learning, Python for Data Analytics, Soft Computing.',
+ jobs:[{role:'Cross-domain AI Specialist',exp:'4–6 yrs',sal:'₹12–28 LPA'}],
+ nptel:[{n:'Introduction to Machine Learning',i:'IIT Madras',w:8}],
+ exams:[]},
+{id:'GNP301',code:'21GNP301L',name:'Community Connect',sem:5,type:'PR',L:0,T:0,P:2,C:1,prereqs:[],
+ desc:'AI for social good mini-project — build solutions for NGOs or government agencies. First real-world portfolio piece.',
+ jobs:[{role:'GovTech / Social Impact Tech Lead',exp:'4–7 yrs',sal:'₹10–25 LPA'}],
+ nptel:[],
+ exams:[]},
+{id:'PDM301',code:'21PDM301L',name:'Analytical and Logical Thinking Skills',sem:5,type:'MC',L:0,T:0,P:2,C:0,prereqs:[],
+ desc:'Analytical reasoning for GATE, GRE, placement aptitude — directly impacts package in campus drives.',
+ jobs:[{role:'All technical roles',exp:'Any',sal:'Placement enabler'}],
+ nptel:[],
+ exams:['GATE', 'IES', 'Defence']},
+{id:'LEM301',code:'21LEM301T',name:'Indian Art Form',sem:5,type:'MC',L:1,T:0,P:0,C:0,prereqs:[],
+ desc:'Indian heritage arts — builds aesthetics for creative AI (generative art, music AI, and cultural NLP projects).',
+ jobs:[{role:'Creative / Generative AI Developer',exp:'3–5 yrs',sal:'₹12–28 LPA'}],
+ nptel:[],
+ exams:[]},
+
+// SEM 6
+{id:'AIC303',code:'21AIC303T',name:'Computer Networks and Communications',sem:6,type:'PC',L:2,T:0,P:0,C:2,prereqs:['CSC202'],
+ desc:'TCP/IP, HTTP, REST APIs, sockets, distributed architecture — essential for deploying AI models as cloud microservices at scale.',
+ jobs:[{role:'MLOps / Cloud AI Engineer',exp:'3–5 yrs',sal:'₹14–32 LPA'},{role:'AI API / Backend Engineer',exp:'3–5 yrs',sal:'₹16–36 LPA'},{role:'Network Security AI Analyst',exp:'4–6 yrs',sal:'₹14–30 LPA'}],
+ nptel:[{n:'Computer Networks and Internet Protocol',i:'IIT Bombay',w:12}],
+ exams:['GATE', 'IES', 'Defence']},
+{id:'CSC303',code:'21CSC303J',name:'Software Engineering and Project Management',sem:6,type:'PC',L:2,T:0,P:2,C:3,prereqs:['CSC205'],
+ desc:'Agile / Scrum / DevOps for AI, SDLC, testing, CI/CD — prepares AI engineers for team leadership and delivery management.',
+ jobs:[{role:'AI Project / Programme Manager',exp:'6–9 yrs',sal:'₹22–48 LPA'},{role:'Engineering Manager – AI',exp:'8–12 yrs',sal:'₹35–75 LPA'},{role:'MLOps / DevOps Lead',exp:'5–7 yrs',sal:'₹20–42 LPA'}],
+ nptel:[{n:'Software Engineering',i:'IIT Bombay',w:8}],
+ exams:['IES', 'Defence']},
+{id:'AIC302',code:'21AIC302J',name:'Reinforcement Learning Techniques',sem:6,type:'PC',L:2,T:0,P:2,C:3,prereqs:['AIC301'],
+ desc:'Q-learning, policy gradients, PPO, RLHF, multi-agent RL — powers autonomous vehicles, robotics, and ChatGPT\'s alignment training.',
+ jobs:[{role:'RL Research Scientist (DeepMind/Meta)',exp:'PhD + 2 yrs',sal:'₹50–140 LPA'},{role:'Autonomous Systems Engineer (Waymo)',exp:'4–7 yrs',sal:'₹25–65 LPA'},{role:'Game AI Developer (EA/Ubisoft)',exp:'3–5 yrs',sal:'₹12–30 LPA'},{role:'Robotics AI Engineer',exp:'4–6 yrs',sal:'₹16–40 LPA'}],
+ nptel:[{n:'Reinforcement Learning',i:'IIT Madras',w:12}],
+ exams:['GATE', 'Defence']},
+{id:'PE_II',code:'PE–II',name:'Professional Elective II',sem:6,type:'PE',L:3,T:0,P:0,C:3,prereqs:[],
+ desc:'Advanced specialisation: Cloud Computing, Big Data Analytics (Hadoop/Spark/NoSQL), Time Series Analysis, Speech Recognition, Marketing Analytics, Distributed Systems, etc.',
+ jobs:[{role:'Cloud / Big Data AI Engineer',exp:'4–6 yrs',sal:'₹18–42 LPA'},{role:'Time Series / Forecasting Scientist',exp:'3–5 yrs',sal:'₹16–36 LPA'}],
+ nptel:[{n:'Big Data Analytics with R and Hadoop',i:'IIT Kharagpur',w:8},{n:'Cloud Computing',i:'IIT Kharagpur',w:8}],
+ exams:[]},
+{id:'PE_III',code:'PE–III',name:'Professional Elective III',sem:6,type:'PE',L:3,T:0,P:0,C:3,prereqs:[],
+ desc:'Third pick: Biometrics, Surveillance Video Analytics, Robot Programming, Accelerated Data Science, VR/AR, Cyber Physical Systems, etc.',
+ jobs:[{role:'Computer Vision Security Engineer',exp:'4–6 yrs',sal:'₹16–36 LPA'},{role:'XR (AR/VR) Developer',exp:'3–5 yrs',sal:'₹12–30 LPA'}],
+ nptel:[{n:'Biometrics',i:'IIT Kanpur',w:8},{n:'Introduction to Internet of Things',i:'IIT Kharagpur',w:8}],
+ exams:[]},
+{id:'OE_II',code:'OE–II',name:'Open Elective II',sem:6,type:'OE',L:2,T:1,P:0,C:3,prereqs:[],
+ desc:'Second cross-departmental elective. Expand knowledge into management, biotech, civil, or mechanical AI applications.',
+ jobs:[{role:'Cross-functional AI Specialist',exp:'4–6 yrs',sal:'₹14–32 LPA'}],
+ nptel:[],
+ exams:[]},
+{id:'AIP302',code:'21AIP302L',name:'Project (Minor)',sem:6,type:'PR',L:0,T:0,P:6,C:3,prereqs:['CSC303','AIC302'],
+ desc:'End-to-end AI mini-project: dataset curation, model design, training, evaluation, and demo. First major portfolio piece for placements.',
+ jobs:[{role:'AI Startup Founder',exp:'0–5 yrs',sal:'Variable + equity'},{role:'AI Project / Tech Lead',exp:'5–7 yrs',sal:'₹20–42 LPA'}],
+ nptel:[],
+ exams:[]},
+{id:'AIP303',code:'21AIP303T',name:'MOOC (Online Certification)',sem:6,type:'PR',L:3,T:0,P:0,C:3,prereqs:[],
+ desc:'Industry-recognised certs: Coursera ML Specialisation, TensorFlow Developer, AWS ML Specialty, Google Cloud AI — directly referenced in AI job descriptions.',
+ jobs:[{role:'AWS / GCP Certified ML Engineer',exp:'1–3 yrs',sal:'₹14–32 LPA'},{role:'TensorFlow / PyTorch Certified Dev',exp:'1–3 yrs',sal:'₹12–28 LPA'}],
+ nptel:[{n:'Deep Learning',i:'IIT Roorkee',w:12},{n:'Machine Learning for Engineering and Science Applications',i:'IIT Madras',w:12}],
+ exams:[]},
+{id:'PDM302',code:'21PDM302L',name:'Employability Skills and Practices',sem:6,type:'MC',L:0,T:0,P:2,C:0,prereqs:[],
+ desc:'Resume crafting, mock interviews, LinkedIn optimisation, and placement strategy — directly tied to campus package outcomes.',
+ jobs:[{role:'All corporate roles',exp:'Any',sal:'Placement multiplier'}],
+ nptel:[],
+ exams:[]},
+{id:'LEM302',code:'21LEM302T',name:'Indian Traditional Knowledge',sem:6,type:'MC',L:1,T:0,P:0,C:0,prereqs:[],
+ desc:'Heritage knowledge systems — inspires AI in Ayurveda, traditional medicine, and cultural NLP research.',
+ jobs:[{role:'Cultural / Heritage AI Developer',exp:'4–6 yrs',sal:'₹10–22 LPA'}],
+ nptel:[],
+ exams:[]},
+
+// SEM 7
+{id:'GNH401',code:'21GNH401T',name:'Behavioral Psychology',sem:7,type:'HUM',L:2,T:1,P:0,C:3,prereqs:['GNH101'],
+ desc:'Cognitive biases, decision-making models, HCI — essential for designing AI systems that humans trust and interact with correctly.',
+ jobs:[{role:'Human-AI Interaction Researcher',exp:'5–8 yrs',sal:'₹20–45 LPA'},{role:'UX Strategist – AI Products',exp:'4–7 yrs',sal:'₹18–38 LPA'},{role:'Behavioral Data Scientist',exp:'4–6 yrs',sal:'₹16–35 LPA'}],
+ nptel:[{n:'Organizational Behaviour and Business Communication',i:'IIT Kharagpur',w:8}],
+ exams:[]},
+{id:'AIC401',code:'21AIC401T',name:'Inferential Statistics and Predictive Analytics',sem:7,type:'PC',L:3,T:0,P:0,C:3,prereqs:['AIC202','MAB302'],
+ desc:'Regression, A/B testing, ANOVA, time-series forecasting — advanced analytics that drives product decisions at Google, Flipkart, Meesho.',
+ jobs:[{role:'Senior Data Scientist (Tier-1)',exp:'5–7 yrs',sal:'₹26–60 LPA'},{role:'Analytics Lead / Head of Analytics',exp:'7–10 yrs',sal:'₹35–80 LPA'},{role:'Applied Scientist – Amazon / Flipkart',exp:'4–7 yrs',sal:'₹28–70 LPA'},{role:'Quantitative Analyst (fin-tech)',exp:'4–7 yrs',sal:'₹25–65 LPA'}],
+ nptel:[{n:'Statistical Inference',i:'IIT Bombay',w:8},{n:'Applied Statistics and Econometrics',i:'IIT Kharagpur',w:12}],
+ exams:['GATE']},
+{id:'AIC402',code:'21AIC402T',name:'Design of Artificial Intelligence Products',sem:7,type:'PC',L:3,T:0,P:0,C:3,prereqs:['AIC401','DCS201'],
+ desc:'AI product lifecycle — ideation, feasibility, architecture, monetisation, and go-to-market. Bridges engineer to product leader track.',
+ jobs:[{role:'Senior AI Product Manager',exp:'6–9 yrs',sal:'₹32–75 LPA'},{role:'AI Startup Founder (funded)',exp:'3+ yrs',sal:'Variable + equity'},{role:'Solutions Architect – AI (FAANG)',exp:'7–10 yrs',sal:'₹40–90 LPA'},{role:'Chief AI / Product Officer',exp:'12+ yrs',sal:'₹70–180 LPA'}],
+ nptel:[{n:'Entrepreneurship Essentials',i:'IIT Bombay',w:4},{n:'Technology Innovation and Management',i:'IIT Kharagpur',w:8}],
+ exams:[]},
+{id:'PE_IV',code:'PE–IV',name:'Professional Elective IV',sem:7,type:'PE',L:3,T:0,P:0,C:3,prereqs:[],
+ desc:'Deep specialisation: Autonomous Navigation, Mobile Game Dev, Bioinformatics, Theoretical Neuroscience, High-Performance Computing, Evolutionary Computing.',
+ jobs:[{role:'Autonomous Vehicle AI Engineer (Waymo)',exp:'5–8 yrs',sal:'₹35–90 LPA'},{role:'Computational Neuroscience Researcher',exp:'PhD',sal:'₹22–55 LPA'}],
+ nptel:[{n:'High Performance Computing',i:'IIT Delhi',w:12},{n:'Robotics',i:'IIT Kharagpur',w:8}],
+ exams:[]},
+{id:'PE_V',code:'PE–V',name:'Professional Elective V',sem:7,type:'PE',L:3,T:0,P:0,C:3,prereqs:[],
+ desc:'Maximum depth: AI in Genomics/Disease Prediction, ML in Drug Discovery, Surveillance Analytics, Logic & Knowledge Representation.',
+ jobs:[{role:'AI in Healthcare / Pharma Scientist',exp:'5–8 yrs',sal:'₹20–50 LPA'},{role:'Drug Discovery ML Researcher',exp:'PhD + 2 yrs',sal:'₹28–65 LPA'}],
+ nptel:[{n:'Artificial Intelligence in Medicine',i:'IIT Delhi',w:8},{n:'Machine Learning for Genomics',i:'IIT Madras',w:8}],
+ exams:[]},
+{id:'OE_III',code:'OE–III',name:'Open Elective III',sem:7,type:'OE',L:2,T:1,P:0,C:3,prereqs:[],
+ desc:'Final cross-department elective for maximum interdisciplinary breadth.',
+ jobs:[{role:'Interdisciplinary AI Specialist',exp:'4–6 yrs',sal:'₹14–35 LPA'}],
+ nptel:[],
+ exams:[]},
+
+// SEM 8
+{id:'AIP401',code:'21AIP401L',name:'Major Project (Thesis)',sem:8,type:'PR',L:0,T:0,P:30,C:15,prereqs:['AIC402','AIP302'],
+ desc:'Full-semester AI research or industry project — publishable paper, deployable product, or open-source contribution. The defining portfolio piece for PhD admissions and senior job offers.',
+ jobs:[{role:'AI Research Scientist (MS/PhD track)',exp:'0 yrs post-grad',sal:'₹28–85 LPA'},{role:'Senior AI / ML Engineer',exp:'5–8 yrs',sal:'₹22–50 LPA'}],
+ nptel:[],
+ exams:[]}
+];
+
+// ═══════════════════════════════════════════
+//  UI INITIALIZATION & INTERACTIVITY
+// ═══════════════════════════════════════════
+
+let activeHoverCardId = null;
+let activeSelectedCardId = null;
+
+let currentTypeFilter = 'ALL';
+let currentExamFilter = 'ALL';
+let currentSearchQuery = '';
+
+// DOM Elements
+const sgrid = document.getElementById('sgrid');
+const gridWrap = document.getElementById('gridWrap');
+const srchBox = document.getElementById('srchBox');
+const panel = document.getElementById('panel');
+const tipEl = document.getElementById('tipEl');
+
+// Render Semester Grid Structure
+function initGrid() {
+  sgrid.innerHTML = '';
+  
+  // Render columns for Semesters 1 to 8
+  for (let sem = 1; sem <= 8; sem++) {
+    const scol = document.createElement('div');
+    scol.className = 'scol';
+    scol.setAttribute('data-sem', sem);
+    
+    // Header
+    const shd = document.createElement('div');
+    shd.className = 'shd';
+    shd.innerHTML = `
+      <div class="stitle">Semester ${sem}</div>
+      <div class="smeta" id="sem-meta-${sem}">0 Credits</div>
+      <div class="sdiv" style="background: ${SEM_C[sem-1]}"></div>
+    `;
+    scol.appendChild(shd);
+    
+    // Cards Container
+    const scards = document.createElement('div');
+    scards.className = 'scards';
+    scol.appendChild(scards);
+    
+    sgrid.appendChild(scol);
+  }
+  
+  // Populate Cards
+  DB.forEach(course => {
+    const semCol = sgrid.querySelector(`.scol[data-sem="${course.sem}"] .scards`);
+    if (!semCol) return;
+    
+    const wrap = document.createElement('div');
+    wrap.className = 'cwrap';
+    wrap.id = `wrap-${course.id}`;
+    
+    const badge = document.createElement('div');
+    badge.className = 'cbadge';
+    badge.style.display = 'none';
+    wrap.appendChild(badge);
+    
+    const tm = TM[course.type] || {l:'Unknown', c:'#000', bg:'#fff'};
+    
+    // Build NPTEL Dot if it has mapping
+    const nptelDot = course.nptel && course.nptel.length > 0 
+      ? `<span class="nptel-dot">MOOC</span>` 
+      : '';
+      
+    // Build Exam Badges
+    let examBadgesStr = '';
+    if (course.exams && course.exams.length > 0) {
+      course.exams.forEach(ex => {
+        examBadgesStr += `<span class="exam-badge ${ex.toLowerCase()}">${ex}</span>`;
+      });
+    }
+    
+    // Prereq label inside the card if there is a prereq
+    const prereqLabel = course.prereqs.length > 0 
+      ? `<div class="cpre">Prereqs: ${course.prereqs.join(', ')}</div>`
+      : '';
+    
+    wrap.innerHTML += `
+      <div class="card t-${course.type}" id="card-${course.id}">
+        <div class="ctop">
+          <span class="ctype">${tm.l}</span>
+          <span class="ccr">C: ${course.C}</span>
+        </div>
+        <div class="ccode">${course.code}</div>
+        <div class="cname">${course.name}</div>
+        <div class="cltpc">L: ${course.L} &nbsp;T: ${course.T} &nbsp;P: ${course.P}</div>
+        ${prereqLabel}
+        <div style="display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; align-items: center;">
+          ${nptelDot}
+          ${examBadgesStr}
+        </div>
+      </div>
+    `;
+    
+    semCol.appendChild(wrap);
+    
+    // Add Interactivity to the Card
+    const cardEl = wrap.querySelector('.card');
+    
+    // Hover Events
+    cardEl.addEventListener('mouseenter', (e) => {
+      if (activeSelectedCardId) return; // Ignore hover highlights if a card is locked via click
+      activeHoverCardId = course.id;
+      updateConnections();
+      showTooltip(e, course);
+    });
+    
+    cardEl.addEventListener('mousemove', (e) => {
+      if (activeSelectedCardId) return;
+      positionTooltip(e);
+    });
+    
+    cardEl.addEventListener('mouseleave', () => {
+      if (activeSelectedCardId) return;
+      activeHoverCardId = null;
+      updateConnections();
+      hideTooltip();
+    });
+    
+    // Click Events
+    cardEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      hideTooltip();
+      
+      if (activeSelectedCardId === course.id) {
+        // Toggle selection off
+        activeSelectedCardId = null;
+        closeSidePanel();
+      } else {
+        // Toggle selection on
+        activeSelectedCardId = course.id;
+        activeHoverCardId = null; // Clear hover if clicked
+        openSidePanel(course);
+      }
+      updateConnections();
+    });
+  });
+}
+
+// Position Tooltip
+function positionTooltip(e) {
+  const tipWidth = tipEl.offsetWidth || 255;
+  const tipHeight = tipEl.offsetHeight || 150;
+  let x = e.clientX + 15;
+  let y = e.clientY + 15;
+  
+  if (x + tipWidth > window.innerWidth) {
+    x = e.clientX - tipWidth - 15;
+  }
+  if (y + tipHeight > window.innerHeight) {
+    y = e.clientY - tipHeight - 15;
+  }
+  
+  tipEl.style.left = `${x}px`;
+  tipEl.style.top = `${y}px`;
+}
+
+// Show Tooltip
+function showTooltip(e, course) {
+  let examContent = '';
+  if (course.exams && course.exams.length > 0) {
+    examContent = `
+      <div class="tip-s">Government Exams</div>
+      <div class="tip-pills">
+        ${course.exams.map(ex => `<span class="tp ${ex.toLowerCase()}" style="background:${ex === 'GATE' ? '#fffbeb' : ex === 'IES' ? '#faf5ff' : '#f0fdf4'}; color:${ex === 'GATE' ? '#b45309' : ex === 'IES' ? '#701a75' : '#15803d'}; border: 1px solid ${ex === 'GATE' ? '#fbbf24' : ex === 'IES' ? '#d8b4fe' : '#6ee7b7'};">${ex}</span>`).join('')}
+      </div>
+    `;
+  }
+  
+  tipEl.innerHTML = `
+    <div class="tip-title">${course.name}</div>
+    <div class="ccode">${course.code}</div>
+    <div style="margin-top: 5px;"><strong>Credits:</strong> ${course.C} &nbsp;·&nbsp; <strong>L-T-P:</strong> ${course.L}-${course.T}-${course.P}</div>
+    <div style="margin-top: 6px; font-weight: 500; opacity: 0.85; line-height: 1.45;">${course.desc}</div>
+    ${examContent}
+    <div class="tip-hint">Click for full details panel</div>
+  `;
+  tipEl.classList.add('vis');
+  positionTooltip(e);
+}
+
+// Hide Tooltip
+function hideTooltip() {
+  tipEl.classList.remove('vis');
+}
+
+// Side Panel Opening & Rendering
+function openSidePanel(course) {
+  panel.classList.add('open');
+  gridWrap.classList.add('panel-open');
+  
+  // Set basic header details
+  document.getElementById('p-code').textContent = course.code;
+  const tm = TM[course.type] || {l: course.type, bg: '#f1f5f9', c: '#475569'};
+  
+  const badge = document.getElementById('p-badge');
+  badge.textContent = tm.l;
+  badge.style.background = tm.bg;
+  badge.style.color = tm.c;
+  
+  document.getElementById('p-name').textContent = course.name;
+  document.getElementById('p-sub').textContent = `Semester ${course.sem} &nbsp;·&nbsp; ${course.C} Credits &nbsp;·&nbsp; Structure: ${course.L}-${course.T}-${course.P}`;
+  
+  // Populate Body
+  const pb = document.getElementById('panel-body');
+  pb.innerHTML = '';
+  
+  // Description
+  const descSec = document.createElement('div');
+  descSec.innerHTML = `
+    <div class="p-sec"><span class="p-sec-icon">📝</span>Description</div>
+    <div class="desc-box">${course.desc}</div>
+  `;
+  pb.appendChild(descSec);
+  
+  // Structure Details Grid
+  const structSec = document.createElement('div');
+  structSec.innerHTML = `
+    <div class="p-sec"><span class="p-sec-icon">📊</span>Course Structure</div>
+    <div class="dtl-grid">
+      <div class="dtl-box"><div class="dtl-v">${course.L}</div><div class="dtl-l">Lecture (L)</div></div>
+      <div class="dtl-box"><div class="dtl-v">${course.T}</div><div class="dtl-l">Tutorial (T)</div></div>
+      <div class="dtl-box"><div class="dtl-v">${course.P}</div><div class="dtl-l">Practical (P)</div></div>
+      <div class="dtl-box"><div class="dtl-v">${course.C}</div><div class="dtl-l">Credits (C)</div></div>
+    </div>
+  `;
+  pb.appendChild(structSec);
+  
+  // Prerequisites (Clickable Pills)
+  const preSec = document.createElement('div');
+  preSec.className = 'p-sec-wrap';
+  let prePills = `<div class="p-none">None</div>`;
+  if (course.prereqs.length > 0) {
+    prePills = `<div class="p-pills">`;
+    course.prereqs.forEach(pid => {
+      const pc = DB.find(c => c.id === pid);
+      if (pc) {
+        prePills += `
+          <div class="p-pill" data-pid="${pid}">
+            <span class="pp-code">${pc.code}</span>
+            <span class="pp-sem" style="background:${SEM_C[pc.sem-1]}22; color:${SEM_C[pc.sem-1]}">Sem ${pc.sem}</span>
+            <span class="pp-name">${pc.name}</span>
+            <span class="pp-arr">→</span>
+          </div>
+        `;
+      }
+    });
+    prePills += `</div>`;
+  }
+  preSec.innerHTML = `
+    <div class="p-sec"><span class="p-sec-icon">⛓️</span>Prerequisites</div>
+    ${prePills}
+  `;
+  pb.appendChild(preSec);
+  
+  // Dependents (Post-requisites) (Clickable Pills)
+  const pstSec = document.createElement('div');
+  pstSec.className = 'p-sec-wrap';
+  const dependents = DB.filter(c => c.prereqs.includes(course.id));
+  let pstPills = `<div class="p-none">None</div>`;
+  if (dependents.length > 0) {
+    pstPills = `<div class="p-pills">`;
+    dependents.forEach(pc => {
+      pstPills += `
+        <div class="p-pill" data-pid="${pc.id}">
+          <span class="pp-code">${pc.code}</span>
+          <span class="pp-sem" style="background:${SEM_C[pc.sem-1]}22; color:${SEM_C[pc.sem-1]}">Sem ${pc.sem}</span>
+          <span class="pp-name">${pc.name}</span>
+          <span class="pp-arr">→</span>
+        </div>
+      `;
+    });
+    pstPills += `</div>`;
+  }
+  pstSec.innerHTML = `
+    <div class="p-sec"><span class="p-sec-icon">🔗</span>Post-requisites (Dependents)</div>
+    ${pstPills}
+  `;
+  pb.appendChild(pstSec);
+  
+  // Government Exams Mapping
+  const examSec = document.createElement('div');
+  examSec.className = 'p-sec-wrap';
+  let examPills = `<div class="p-none">Not mapped to government exams</div>`;
+  if (course.exams && course.exams.length > 0) {
+    examPills = `<div class="p-pills">`;
+    course.exams.forEach(ex => {
+      let fullName = 'Government Exam';
+      if (ex === 'GATE') { fullName = 'Graduate Aptitude Test in Engineering'; }
+      else if (ex === 'IES') { fullName = 'Indian Engineering Services'; }
+      else if (ex === 'Defence') { fullName = 'Defence Services Technical Entry / DRDO'; }
+      
+      examPills += `
+        <div class="p-pill" style="border:1.5px solid ${ex === 'GATE' ? '#fbbf24' : ex === 'IES' ? '#d8b4fe' : '#6ee7b7'}; background:${ex === 'GATE' ? '#fffbeb' : ex === 'IES' ? '#faf5ff' : '#f0fdf4'}">
+          <span class="pp-code" style="color:${ex === 'GATE' ? '#b45309' : ex === 'IES' ? '#701a75' : '#15803d'}; font-weight:800">${ex}</span>
+          <span class="pp-name" style="font-weight:600; font-size:9.5px">${fullName}</span>
+        </div>
+      `;
+    });
+    examPills += `</div>`;
+  }
+  examSec.innerHTML = `
+    <div class="p-sec"><span class="p-sec-icon">🏛️</span>Government Exam Syllabus Mapping</div>
+    ${examPills}
+  `;
+  pb.appendChild(examSec);
+
+  // Industry Careers & Placement Jobs
+  const jobSec = document.createElement('div');
+  jobSec.className = 'p-sec-wrap';
+  let jobCards = `<div class="p-none">None</div>`;
+  if (course.jobs && course.jobs.length > 0) {
+    jobCards = '';
+    course.jobs.forEach(job => {
+      jobCards += `
+        <div class="job-row">
+          <div class="jr-left">
+            <span class="jr-role">${job.role}</span>
+            <span class="jr-exp">Experience: ${job.exp}</span>
+          </div>
+          <span class="jr-sal">${job.sal}</span>
+        </div>
+      `;
+    });
+  }
+  jobSec.innerHTML = `
+    <div class="p-sec"><span class="p-sec-icon">💼</span>Career Roles &amp; Packages</div>
+    ${jobCards}
+  `;
+  pb.appendChild(jobSec);
+  
+  // MOOC / NPTEL Online Certification Courses
+  const nptelSec = document.createElement('div');
+  nptelSec.className = 'p-sec-wrap';
+  let nptelCards = `<div class="p-none">None mapped</div>`;
+  if (course.nptel && course.nptel.length > 0) {
+    nptelCards = '';
+    course.nptel.forEach(mooc => {
+      nptelCards += `
+        <div class="nptel-card">
+          <div class="nptel-logo">MOOC</div>
+          <div class="nptel-info">
+            <div class="nptel-title">${mooc.n}</div>
+            <div class="nptel-meta">${mooc.i} &nbsp;·&nbsp; ${mooc.w} weeks</div>
+          </div>
+          <a class="nptel-link" href="https://swayam.gov.in/" target="_blank">View Course</a>
+        </div>
+      `;
+    });
+  }
+  nptelSec.innerHTML = `
+    <div class="p-sec"><span class="p-sec-icon">⬡</span>NPTEL / Swayam Mapping</div>
+    ${nptelCards}
+  `;
+  pb.appendChild(nptelSec);
+  
+  // Add listeners to panel clickable pills to shift selection to another course
+  pb.querySelectorAll('.p-pill[data-pid]').forEach(pill => {
+    pill.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const nextId = pill.getAttribute('data-pid');
+      const nextCourse = DB.find(c => c.id === nextId);
+      if (nextCourse) {
+        activeSelectedCardId = nextId;
+        openSidePanel(nextCourse);
+        updateConnections();
+        
+        // Scroll target card into view if needed
+        const cardEl = document.getElementById(`card-${nextId}`);
+        if (cardEl) {
+          cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+      }
+    });
+  });
+  
+  // Footer Close Option
+  const pf = document.getElementById('panel-foot');
+  pf.innerHTML = `
+    <span class="p-foot-info">${course.id} Details</span>
+    <button class="p-foot-close" id="p-foot-close-btn">Close Panel</button>
+  `;
+  
+  document.getElementById('p-foot-close-btn').addEventListener('click', () => {
+    activeSelectedCardId = null;
+    closeSidePanel();
+    updateConnections();
+  });
+}
+
+// Close Side Panel
+function closeSidePanel() {
+  panel.classList.remove('open');
+  gridWrap.classList.remove('panel-open');
+}
+
+// Connections Overlay & Highlights Logic
+function updateConnections() {
+  const svg = document.getElementById('cSVG');
+  // Clear connections keeping defs
+  const defs = svg.querySelector('defs');
+  svg.innerHTML = '';
+  svg.appendChild(defs);
+
+  // Clear all highlights
+  document.querySelectorAll('.card').forEach(card => {
+    card.classList.remove('dim', 'pre-hl', 'pst-hl', 'sel-hl');
+  });
+  document.querySelectorAll('.cbadge').forEach(badge => {
+    badge.style.display = 'none';
+    badge.classList.remove('sel', 'pre', 'pst');
+  });
+
+  const activeId = activeHoverCardId || activeSelectedCardId;
+  if (!activeId) {
+    applyFilters();
+    return;
+  }
+
+  // Retrieve course data
+  const course = DB.find(c => c.id === activeId);
+  if (!course) return;
+
+  const prereqIds = course.prereqs;
+  const dependentIds = DB.filter(c => c.prereqs.includes(activeId)).map(c => c.id);
+
+  // Highlight connections
+  document.querySelectorAll('.card').forEach(card => {
+    card.classList.add('dim');
+  });
+
+  const activeCardEl = document.getElementById(`card-${activeId}`);
+  if (activeCardEl) {
+    activeCardEl.classList.remove('dim');
+    activeCardEl.classList.add('sel-hl');
+    
+    const wrap = document.getElementById(`wrap-${activeId}`);
+    if (wrap) {
+      const badge = wrap.querySelector('.cbadge');
+      if (badge) {
+        badge.textContent = activeSelectedCardId === activeId ? 'Selected' : 'Active';
+        badge.style.display = 'block';
+        badge.className = 'cbadge sel';
+      }
+    }
+  }
+
+  // Prereqs
+  prereqIds.forEach(pid => {
+    const cardEl = document.getElementById(`card-${pid}`);
+    // Only highlight and draw if the prerequisite is currently visible
+    const wrapEl = document.getElementById(`wrap-${pid}`);
+    if (cardEl && wrapEl && wrapEl.style.display !== 'none') {
+      cardEl.classList.remove('dim');
+      cardEl.classList.add('pre-hl');
+      
+      const badge = wrapEl.querySelector('.cbadge');
+      if (badge) {
+        badge.textContent = 'Prerequisite';
+        badge.style.display = 'block';
+        badge.className = 'cbadge pre';
+      }
+      
+      if (activeCardEl) {
+        drawLineBetween(cardEl, activeCardEl, '#fb7185', 'a-pre');
+      }
+    }
+  });
+
+  // Post-requisites
+  dependentIds.forEach(did => {
+    const cardEl = document.getElementById(`card-${did}`);
+    const wrapEl = document.getElementById(`wrap-${did}`);
+    if (cardEl && wrapEl && wrapEl.style.display !== 'none') {
+      cardEl.classList.remove('dim');
+      cardEl.classList.add('pst-hl');
+      
+      const badge = wrapEl.querySelector('.cbadge');
+      if (badge) {
+        badge.textContent = 'Post-requisite';
+        badge.style.display = 'block';
+        badge.className = 'cbadge pst';
+      }
+      
+      if (activeCardEl) {
+        drawLineBetween(activeCardEl, cardEl, '#4ade80', 'a-pst');
+      }
+    }
+  });
+}
+
+// Draw Curved Lines in SVG Overlay
+function drawLineBetween(elFrom, elTo, color, markerId) {
+  const rectFrom = elFrom.getBoundingClientRect();
+  const rectTo = elTo.getBoundingClientRect();
+
+  // Draw relative to viewport coordinates since SVG is fixed
+  const x1 = rectFrom.right;
+  const y1 = rectFrom.top + rectFrom.height / 2;
+  const x2 = rectTo.left;
+  const y2 = rectTo.top + rectTo.height / 2;
+
+  const dx = Math.abs(x2 - x1) * 0.45;
+  const d = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
+
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", d);
+  path.setAttribute("stroke", color);
+  path.setAttribute("stroke-width", "2");
+  path.setAttribute("fill", "none");
+  path.setAttribute("stroke-dasharray", "4,3");
+  if (markerId) {
+    path.setAttribute("marker-end", `url(#${markerId})`);
+  }
+
+  document.getElementById('cSVG').appendChild(path);
+}
+
+// Apply Filters (Course Type, Government Exam, and Search text query)
+function applyFilters() {
+  DB.forEach(course => {
+    const wrap = document.getElementById(`wrap-${course.id}`);
+    if (!wrap) return;
+    
+    // 1. Course Type Filter
+    let matchType = false;
+    if (currentTypeFilter === 'ALL') {
+      matchType = true;
+    } else if (currentTypeFilter === 'NPTEL') {
+      matchType = course.nptel && course.nptel.length > 0;
+    } else {
+      matchType = course.type === currentTypeFilter;
+    }
+    
+    // 2. Exam Filter
+    let matchExam = false;
+    if (currentExamFilter === 'ALL') {
+      matchExam = true;
+    } else {
+      matchExam = course.exams && course.exams.includes(currentExamFilter);
+    }
+    
+    // 3. Search Filter
+    let matchSearch = false;
+    if (!currentSearchQuery) {
+      matchSearch = true;
+    } else {
+      const q = currentSearchQuery.toLowerCase();
+      matchSearch = course.name.toLowerCase().includes(q) || 
+                    course.code.toLowerCase().includes(q) || 
+                    course.id.toLowerCase().includes(q);
+    }
+    
+    // Final visibility resolution
+    if (matchType && matchExam && matchSearch) {
+      wrap.style.display = 'block';
+    } else {
+      wrap.style.display = 'none';
+    }
+  });
+  
+  // Recalculate credit count summaries
+  updateCreditsSummary();
+  updateSemestersMeta();
+}
+
+// Calculate and Update Semester Credits Counter
+function updateSemestersMeta() {
+  for (let sem = 1; sem <= 8; sem++) {
+    const semMeta = document.getElementById(`sem-meta-${sem}`);
+    if (!semMeta) continue;
+    
+    let semCredits = 0;
+    const semWraps = Array.from(document.querySelectorAll(`.scol[data-sem="${sem}"] .cwrap`));
+    semWraps.forEach(wrap => {
+      if (wrap.style.display !== 'none') {
+        const card = wrap.querySelector('.card');
+        if (card) {
+          const cid = card.id.replace('card-', '');
+          const course = DB.find(c => c.id === cid);
+          if (course) semCredits += course.C;
+        }
+      }
+    });
+    
+    semMeta.textContent = `${semCredits} Credits`;
+  }
+}
+
+// Calculate and Render Global Credits Bar
+function updateCreditsSummary() {
+  const summary = {
+    tot: 0, BS: 0, ES: 0, PC: 0, PE: 0, OE: 0, PR: 0, HUM: 0, MC: 0
+  };
+
+  DB.forEach(course => {
+    const wrap = document.getElementById(`wrap-${course.id}`);
+    if (wrap && wrap.style.display !== 'none') {
+      summary.tot += course.C;
+      if (summary[course.type] !== undefined) {
+        summary[course.type] += course.C;
+      }
+    }
+  });
+
+  const cbar = document.getElementById('cbarEl');
+  cbar.innerHTML = `
+    <div class="cc tot"><span class="ccn">${summary.tot}</span><span class="ccl">Total Credits</span></div>
+    <div class="cc bs"><span class="ccn">${summary.BS}</span><span class="ccl">Basic Science</span></div>
+    <div class="cc es"><span class="ccn">${summary.ES}</span><span class="ccl">Engg Science</span></div>
+    <div class="cc pc"><span class="ccn">${summary.PC}</span><span class="ccl">Program Core</span></div>
+    <div class="cc pe"><span class="ccn">${summary.PE}</span><span class="ccl">Pro. Elective</span></div>
+    <div class="cc oe"><span class="ccn">${summary.OE}</span><span class="ccl">Open Elective</span></div>
+    <div class="cc pr"><span class="ccn">${summary.PR}</span><span class="ccl">Project</span></div>
+    <div class="cc hum"><span class="ccn">${summary.HUM}</span><span class="ccl">Humanities</span></div>
+    <div class="cc mc"><span class="ccn">${summary.MC}</span><span class="ccl">Non-Credit</span></div>
+  `;
+}
+
+// Setup Event Listeners
+function setupListeners() {
+  // Course Type Filter Buttons
+  document.querySelectorAll('.ctrl .fb').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.ctrl .fb').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      currentTypeFilter = btn.getAttribute('data-t');
+      applyFilters();
+      if (activeHoverCardId || activeSelectedCardId) updateConnections();
+    });
+  });
+  
+  // Government Exam Filter Buttons
+  document.querySelectorAll('.ex-ctrl .fb').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.ex-ctrl .fb').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      currentExamFilter = btn.getAttribute('data-e');
+      applyFilters();
+      if (activeHoverCardId || activeSelectedCardId) updateConnections();
+    });
+  });
+  
+  // Search Input Box
+  srchBox.addEventListener('input', (e) => {
+    currentSearchQuery = e.target.value;
+    applyFilters();
+    if (activeHoverCardId || activeSelectedCardId) updateConnections();
+  });
+  
+  // Close Panel button
+  document.getElementById('p-close-btn').addEventListener('click', () => {
+    activeSelectedCardId = null;
+    closeSidePanel();
+    updateConnections();
+  });
+  
+  // Deselect on body click (if click was outside cards and panels)
+  document.body.addEventListener('click', (e) => {
+    if (!e.target.closest('.card') && !e.target.closest('.panel') && !e.target.closest('.p-pill')) {
+      activeSelectedCardId = null;
+      closeSidePanel();
+      updateConnections();
+    }
+  });
+  
+  // Scroll and Resize triggers redraw of SVG connection lines
+  gridWrap.addEventListener('scroll', () => {
+    if (activeHoverCardId || activeSelectedCardId) updateConnections();
+  });
+  window.addEventListener('resize', () => {
+    if (activeHoverCardId || activeSelectedCardId) updateConnections();
+  });
+}
+
+// Launch Application
+initGrid();
+applyFilters();
+setupListeners();
+</script>
+</body>
+</html>

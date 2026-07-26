@@ -15,6 +15,7 @@ interface SettingsModalProps {
   initialTab?: SettingsTab;
   theme: 'light' | 'dark';
   onChangeTheme: (theme: 'light' | 'dark') => void;
+  onCheckForUpdates?: () => void;
 }
 
 const TABS: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
@@ -40,7 +41,7 @@ const TextField = ({
   />
 );
 
-export const SettingsModal = ({ isOpen, onClose, initialTab = 'general', onChangeTheme }: SettingsModalProps) => {
+export const SettingsModal = ({ isOpen, onClose, initialTab = 'general', onChangeTheme, onCheckForUpdates }: SettingsModalProps) => {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
 
@@ -163,6 +164,28 @@ export const SettingsModal = ({ isOpen, onClose, initialTab = 'general', onChang
                   <p className="text-xs text-gray-500 leading-relaxed mt-1">
                     Choose your interface color preference. Monochromatic frame elements will adapt, while active simulation elements remain colorful.
                   </p>
+                </div>
+
+                <div className="pt-4 mt-2 border-t border-white/10 flex flex-col gap-2">
+                  <FieldLabel>Application & Updates</FieldLabel>
+                  <div className="flex items-center justify-between p-3 bg-black/60 border border-white/10 rounded-lg">
+                    <div>
+                      <div className="text-[#00e5a3] font-bold text-sm">Autometa Studio</div>
+                      <div className="text-xs text-gray-400 font-mono">Current Version: v0.2.3</div>
+                    </div>
+                    {onCheckForUpdates && (
+                      <Button
+                        variant="secondary"
+                        className="px-3 py-1.5 text-xs"
+                        onClick={() => {
+                          onClose();
+                          onCheckForUpdates();
+                        }}
+                      >
+                        Check for Updates
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </>
             )}

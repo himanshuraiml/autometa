@@ -29,6 +29,7 @@
   --node-bg: #ffffff;
   --node-border: #111827;
   --edge-stroke: #111827;
+  --edge-stroke-idle: #6366f1;   /* colorful idle edge — indigo-purple in light mode */
   --tape-track-bg: #ffffff;
   --tape-cell-bg: #f9fafb;
   --card-bg: #ffffff;
@@ -67,6 +68,7 @@
   --node-bg: #1c1c1f;
   --node-border: #f3f4f6;
   --edge-stroke: #a1a1aa;
+  --edge-stroke-idle: #22d3ee;   /* colorful idle edge — cyan-teal in dark mode */
   --tape-track-bg: #121214;
   --tape-cell-bg: #252529;
   --card-bg: #1c1c1f;
