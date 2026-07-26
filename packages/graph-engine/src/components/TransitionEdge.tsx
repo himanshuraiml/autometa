@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { EdgeLabelRenderer, getBezierPath, useStore } from '@xyflow/react';
-import type { EdgeProps } from '@xyflow/react';
+import type { EdgeProps, Node } from '@xyflow/react';
 
 export interface TransitionEdgeData {
   label: string;
