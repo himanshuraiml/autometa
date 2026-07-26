@@ -103,4 +103,4 @@ class Settings:
 
 settings = Settings()
 
-APP_VERSION = "0.2.2"
+APP_VERSION = "0.2.3"
