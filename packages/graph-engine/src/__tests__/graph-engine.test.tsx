@@ -106,7 +106,7 @@ describe('TransitionEdge', () => {
       </svg>
     );
     const path = container.querySelector('path.react-flow__edge-path');
-    expect(path?.getAttribute('style')).toContain('stroke: var(--color-blue)');
+    expect(path?.getAttribute('stroke')).toBe('var(--color-blue)');
     expect(container.querySelector('circle')).not.toBeNull();
   });
 });

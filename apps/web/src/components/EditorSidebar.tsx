@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import type { RefObject } from 'react';
 import type { Node, Edge } from '@xyflow/react';
-import { Trash2, PlayCircle, RotateCcw, Sparkles, ListOrdered, Blocks, Sliders, Cpu } from 'lucide-react';
+import { Trash2, PlayCircle, RotateCcw, Sparkles, ListOrdered, Blocks, Sliders, Cpu, Wand2, BookOpen, Hammer, ListChecks } from 'lucide-react';
 import { Button } from '@autometa/ui';
+import { simplifyRegex } from '@autometa/rule-engine';
 import { useGraphStore } from '../store/useGraphStore';
 import { DELETE_SHORTCUT_HINT } from '../utils/shortcuts';
 import type { SimulationPlayback } from '../hooks/useSimulationPlayback';
@@ -16,6 +17,7 @@ import { ValidationPanel } from './ValidationPanel';
 import { TransitionTable } from './TransitionTable';
 import { TestSuitePanel } from './TestSuitePanel';
 import { BatchModeModal } from './BatchModeModal';
+import { SymbolPalette, autoReplaceFormalSymbols } from './SymbolPalette';
 
 /** Lightweight presentational-only regex tokenizer for the syntax-highlighting overlay (not the engine's parser). */
 const highlightRegexPattern = (pattern: string): Array<{ text: string; className: string }> => {
@@ -50,6 +52,7 @@ interface EditorSidebarProps {
   onDeleteSelectedNode: () => void;
   onDeleteSelectedEdge: () => void;
   regexInputRef: RefObject<HTMLInputElement | null>;
+  onOpenConversionHub: () => void;
 }
 
 /**
@@ -58,12 +61,12 @@ interface EditorSidebarProps {
  */
 export const EditorSidebar = ({
   automatonType, playback, transformations, grading,
-  selectedNode, selectedEdge, onDeleteSelectedNode, onDeleteSelectedEdge, regexInputRef,
+  selectedNode, selectedEdge, onDeleteSelectedNode, onDeleteSelectedEdge, regexInputRef, onOpenConversionHub,
 }: EditorSidebarProps) => {
   const { nodes, edges, toggleStart, toggleAccept, toggleReject, updateNodeLabel, updateEdgeLabel, updateEdgeRouting, allowParallelEdges, setAllowParallelEdges, testSuites, addTestCase, removeTestCase, tapeCount, setTapeCount, insertSubmachineOnEdge } = useGraphStore();
   const {
     inputString, setInputString, simulationEvents, startSimulation, stopSimulation, blankSymbol, setBlankSymbol,
-    stackSymbol, setStackSymbol, acceptanceMode, setAcceptanceMode,
+    isLbaMode, setIsLbaMode, stackSymbol, setStackSymbol, acceptanceMode, setAcceptanceMode,
   } = playback;
   const {
     regexInput, setRegexInput, setRegexError, regexError,
@@ -102,6 +105,14 @@ export const EditorSidebar = ({
     showToast(`Saved "${name.trim()}" to the submachine library.`, 'success');
   };
 
+  const handleSimplifyRegex = () => {
+    try {
+      setRegexInput(simplifyRegex(regexInput));
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Invalid Regular Expression pattern.', 'error');
+    }
+  };
+
   return (
     <aside className="w-[340px] border-l border-[var(--border-color)] bg-[var(--bg-secondary)] p-4 flex flex-col gap-4 select-none text-[var(--text-main)] h-full overflow-hidden" aria-label="Editor properties and tools">
       {/* Sleek Segmented Control Tab Switcher */}
@@ -118,11 +129,10 @@ export const EditorSidebar = ({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer border text-center focus:outline-none ${
-                isActive
+              className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer border text-center focus:outline-none ${isActive
                   ? 'bg-[var(--text-main)] text-[var(--bg-primary)] border-transparent shadow-sm'
                   : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-secondary)] border-transparent bg-transparent'
-              }`}
+                }`}
               title={tab.label}
             >
               <Icon className="w-4 h-4 shrink-0" />
@@ -222,8 +232,15 @@ export const EditorSidebar = ({
                       id="transition-symbols-input"
                       type="text"
                       value={selectedEdge.data?.label as string || ''}
-                      onChange={(e) => updateEdgeLabel(selectedEdge.id, e.target.value)}
+                      onChange={(e) => updateEdgeLabel(selectedEdge.id, autoReplaceFormalSymbols(e.target.value))}
                       className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-[var(--color-ui-accent)] focus:ring-2 focus:ring-[var(--border-color)]/20 transition-all text-[var(--text-main)] font-mono hover:border-[var(--text-muted)]"
+                    />
+                    <SymbolPalette
+                      className="mt-2"
+                      onInsertSymbol={(sym) => {
+                        const current = (selectedEdge.data?.label as string) || '';
+                        updateEdgeLabel(selectedEdge.id, current ? `${current}, ${sym}` : sym);
+                      }}
                     />
                     {automatonType === 'Mealy' && (
                       <p className="text-[10px] text-[var(--text-muted)] mt-1">
@@ -395,6 +412,18 @@ export const EditorSidebar = ({
                         {[1, 2, 3, 4].map(n => <option key={n} value={n} className="bg-[var(--bg-primary)]">{n} tape{n > 1 ? 's' : ''}</option>)}
                       </select>
                     </div>
+                    {tapeCount === 1 && (
+                      <label className="col-span-2 flex items-start gap-2 text-[10px] text-[var(--text-muted)] cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isLbaMode}
+                          onChange={event => setIsLbaMode(event.target.checked)}
+                          disabled={simulationEvents.length > 0}
+                          className="mt-0.5 accent-[var(--color-ui-accent)]"
+                        />
+                        <span>Simulate as LBA (bounded tape) — the head halts and rejects if it ever moves past the input's own length.</span>
+                      </label>
+                    )}
                   </div>
                 )}
                 {automatonType === 'PDA' && (
@@ -464,50 +493,65 @@ export const EditorSidebar = ({
 
         {activeTab === 'algorithms' && (
           <div className="flex flex-col gap-5">
-            {/* Algorithms & Conversions */}
+            {/* Build */}
             <div>
               <h2 className="text-[10px] font-extrabold uppercase tracking-widest text-[var(--text-muted)] mb-3 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-[var(--text-muted)] rounded-full" />
-                <span>Algorithms</span>
+                <Hammer className="w-3 h-3" />
+                <span>Build</span>
+              </h2>
+              <div className="bg-[var(--card-bg)] p-4 rounded-xl border border-[var(--border-color)] border-t-2 border-t-[var(--color-ui-accent)] shadow-sm flex flex-col gap-1.5">
+                <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Regex to NFA (Thompson's Construction)</label>
+                <div className="flex gap-1.5">
+                  <div className="relative flex-1">
+                    <div aria-hidden="true" className="absolute inset-0 px-2.5 py-1.5 text-xs font-mono whitespace-pre overflow-hidden rounded-lg pointer-events-none bg-[var(--bg-primary)] border border-[var(--border-color)]">
+                      {regexInput ? (
+                        highlightRegexPattern(regexInput).map((token, idx) => <span key={idx} className={token.className}>{token.text}</span>)
+                      ) : (
+                        <span className="text-[var(--text-dim)]">e.g. (a|b)*abb</span>
+                      )}
+                    </div>
+                    <input
+                      ref={regexInputRef}
+                      type="text"
+                      value={regexInput}
+                      onChange={(e) => { setRegexInput(e.target.value); setRegexError(null); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleRegexToNfa(); }}
+                      aria-label="Regular expression"
+                      className="relative w-full bg-transparent border border-transparent focus:border-[var(--color-ui-accent)] focus:ring-2 focus:ring-[var(--border-color)]/20 rounded-lg px-2.5 py-1.5 text-xs font-mono text-transparent caret-[var(--text-main)] hover:border-[var(--border-color)] transition-all focus:outline-none"
+                    />
+                  </div>
+                  <Button
+                    onClick={handleRegexToNfa}
+                    disabled={!regexInput.trim()}
+                    className="!px-3 !py-1.5 text-xs shrink-0 border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-main)] hover:bg-[var(--bg-secondary)]"
+                  >
+                    Build
+                  </Button>
+                  <Button
+                    onClick={handleSimplifyRegex}
+                    disabled={!regexInput.trim()}
+                    title="Algebraically simplify this pattern without changing its language"
+                    className="!px-3 !py-1.5 text-xs shrink-0 flex items-center gap-1.5 border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-main)] hover:bg-[var(--bg-secondary)]"
+                  >
+                    <Wand2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+                {regexError && (
+                  <p className="text-[10px] text-[var(--color-rose)] font-semibold">{regexError}</p>
+                )}
+                <p className="text-[10px] text-[var(--text-muted)]">
+                  Supports <code className="text-[var(--text-main)]">|  *  +  ?  ( )  [a-z]  [^a]  .</code> — the parse tree (AST) appears alongside the build steps.
+                </p>
+              </div>
+            </div>
+
+            {/* Step-by-Step Walkthroughs */}
+            <div>
+              <h2 className="text-[10px] font-extrabold uppercase tracking-widest text-[var(--text-muted)] mb-3 flex items-center gap-2">
+                <ListChecks className="w-3 h-3" />
+                <span>Step-by-Step Walkthroughs</span>
               </h2>
               <div className="bg-[var(--card-bg)] p-4 rounded-xl border border-[var(--border-color)] border-t-2 border-t-[var(--color-ui-accent)] shadow-sm flex flex-col gap-3">
-                <div className="flex flex-col gap-1.5 pb-3 mb-1 border-b border-[var(--border-color)]">
-                  <label className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Regex to NFA (Thompson's Construction)</label>
-                  <div className="flex gap-1.5">
-                    <div className="relative flex-1">
-                      <div aria-hidden="true" className="absolute inset-0 px-2.5 py-1.5 text-xs font-mono whitespace-pre overflow-hidden rounded-lg pointer-events-none bg-[var(--bg-primary)] border border-[var(--border-color)]">
-                        {regexInput ? (
-                          highlightRegexPattern(regexInput).map((token, idx) => <span key={idx} className={token.className}>{token.text}</span>)
-                        ) : (
-                          <span className="text-[var(--text-dim)]">e.g. (a|b)*abb</span>
-                        )}
-                      </div>
-                      <input
-                        ref={regexInputRef}
-                        type="text"
-                        value={regexInput}
-                        onChange={(e) => { setRegexInput(e.target.value); setRegexError(null); }}
-                        onKeyDown={(e) => { if (e.key === 'Enter') handleRegexToNfa(); }}
-                        aria-label="Regular expression"
-                        className="relative w-full bg-transparent border border-transparent focus:border-[var(--color-ui-accent)] focus:ring-2 focus:ring-[var(--border-color)]/20 rounded-lg px-2.5 py-1.5 text-xs font-mono text-transparent caret-[var(--text-main)] hover:border-[var(--border-color)] transition-all focus:outline-none"
-                      />
-                    </div>
-                    <Button
-                      onClick={handleRegexToNfa}
-                      disabled={!regexInput.trim()}
-                      className="!px-3 !py-1.5 text-xs shrink-0 border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-main)] hover:bg-[var(--bg-secondary)]"
-                    >
-                      Build
-                    </Button>
-                  </div>
-                  {regexError && (
-                    <p className="text-[10px] text-[var(--color-rose)] font-semibold">{regexError}</p>
-                  )}
-                  <p className="text-[10px] text-[var(--text-muted)]">
-                    Supports <code className="text-[var(--text-main)]">|  *  +  ?  ( )  [a-z]  [^a]  .</code> — the parse tree (AST) appears alongside the build steps.
-                  </p>
-                </div>
-
                 {automatonType === 'NFA' ? (
                   <>
                     <Button
@@ -584,6 +628,14 @@ export const EditorSidebar = ({
                 )}
               </div>
             </div>
+
+            <Button
+              onClick={onOpenConversionHub}
+              variant="secondary"
+              className="flex items-center justify-center gap-2 !text-xs border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-main)] hover:bg-[var(--bg-secondary)]"
+            >
+              <BookOpen className="w-3.5 h-3.5" /> More Conversions & Transformations
+            </Button>
           </div>
         )}
 

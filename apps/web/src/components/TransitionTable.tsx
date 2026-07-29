@@ -5,6 +5,7 @@ import { getInputAlphabet, getTransitionInputSymbol } from '../utils/automatonVa
 import { parseTransitionLabel, parsePdaTransitionParts, formatPdaTransitionParts, parseTmTransitionParts, formatTmTransitionParts, parseMultiTapeTmTransitionParts, formatMultiTapeTmTransitionParts } from '../utils/transitionParser';
 import type { PdaTransitionParts, TmTransitionParts } from '../utils/transitionParser';
 import { useGraphStore } from '../store/useGraphStore';
+import { SymbolPalette, autoReplaceFormalSymbols } from './SymbolPalette';
 
 const labelOf = (node: Node) => String(node.data?.label || node.id);
 
@@ -64,7 +65,7 @@ const GridTransitionTable = ({ nodes, edges, automatonType, alphabet }: { nodes:
           {target && (
             <input
               value={output}
-              onChange={event => setStructuredTransition({ source: node.id, target, transitionText: `${symbol}/${event.target.value || '0'}`, previous: match && { edgeId: match.edgeId, transitionIndex: match.transitionIndex } })}
+              onChange={event => setStructuredTransition({ source: node.id, target, transitionText: `${symbol}/${autoReplaceFormalSymbols(event.target.value) || '0'}`, previous: match && { edgeId: match.edgeId, transitionIndex: match.transitionIndex } })}
               placeholder="out"
               className="w-10 bg-black/40 border border-white/10 rounded px-1 py-1 text-[10px] text-white font-mono"
               aria-label={`Output for ${labelOf(node)} on ${symbol}`}
@@ -157,9 +158,9 @@ const StructuredTransitionTable = ({ nodes, edges, automatonType, tapeCount = 1 
       {Array.from({ length: tapeCount }, (_, i) => (
         <div key={i} className="flex items-center gap-1">
           <span className="text-slate-600 w-6">T{i}</span>
-          <input value={parts.reads[i] ?? ''} onChange={e => update(i, 'read', e.target.value)} placeholder="ε" className={narrowInputClass} aria-label={`Tape ${i} read symbol`} />
+          <input value={parts.reads[i] ?? ''} onChange={e => update(i, 'read', autoReplaceFormalSymbols(e.target.value))} placeholder="ε" className={narrowInputClass} aria-label={`Tape ${i} read symbol`} />
           <span className="text-slate-500">→</span>
-          <input value={parts.writes[i] ?? ''} onChange={e => update(i, 'write', e.target.value)} placeholder="ε" className={narrowInputClass} aria-label={`Tape ${i} write symbol`} />
+          <input value={parts.writes[i] ?? ''} onChange={e => update(i, 'write', autoReplaceFormalSymbols(e.target.value))} placeholder="ε" className={narrowInputClass} aria-label={`Tape ${i} write symbol`} />
           <span className="text-slate-500">,</span>
           <select value={parts.directions[i] ?? 'R'} onChange={e => update(i, 'direction', e.target.value)} className={`${cellSelectClass} !w-12`} aria-label={`Tape ${i} head direction`}>
             <option value="L">L</option><option value="R">R</option><option value="S">S</option>
@@ -185,11 +186,11 @@ const StructuredTransitionTable = ({ nodes, edges, automatonType, tapeCount = 1 
       const update = (next: Partial<PdaTransitionParts>) => commitRow(row, { text: formatPdaTransitionParts({ ...parts, ...next }) });
       return (
         <>
-          <input value={parts.read} onChange={e => update({ read: e.target.value })} placeholder="ε" className={narrowInputClass} aria-label="Read symbol" />
+          <input value={parts.read} onChange={e => update({ read: autoReplaceFormalSymbols(e.target.value) })} placeholder="ε" className={narrowInputClass} aria-label="Read symbol" />
           <span className="text-slate-500">,</span>
-          <input value={parts.pop} onChange={e => update({ pop: e.target.value })} placeholder="ε" className={narrowInputClass} aria-label="Pop symbol" />
+          <input value={parts.pop} onChange={e => update({ pop: autoReplaceFormalSymbols(e.target.value) })} placeholder="ε" className={narrowInputClass} aria-label="Pop symbol" />
           <span className="text-slate-500">→</span>
-          <input value={parts.push} onChange={e => update({ push: e.target.value })} placeholder="ε" className={`${narrowInputClass} w-20`} aria-label="Push symbols" />
+          <input value={parts.push} onChange={e => update({ push: autoReplaceFormalSymbols(e.target.value) })} placeholder="ε" className={`${narrowInputClass} w-20`} aria-label="Push symbols" />
         </>
       );
     }
@@ -197,9 +198,9 @@ const StructuredTransitionTable = ({ nodes, edges, automatonType, tapeCount = 1 
     const update = (next: Partial<TmTransitionParts>) => commitRow(row, { text: formatTmTransitionParts({ ...parts, ...next }) });
     return (
       <>
-        <input value={parts.read} onChange={e => update({ read: e.target.value })} placeholder="ε" className={narrowInputClass} aria-label="Read symbol" />
+        <input value={parts.read} onChange={e => update({ read: autoReplaceFormalSymbols(e.target.value) })} placeholder="ε" className={narrowInputClass} aria-label="Read symbol" />
         <span className="text-slate-500">→</span>
-        <input value={parts.write} onChange={e => update({ write: e.target.value })} placeholder="ε" className={narrowInputClass} aria-label="Write symbol" />
+        <input value={parts.write} onChange={e => update({ write: autoReplaceFormalSymbols(e.target.value) })} placeholder="ε" className={narrowInputClass} aria-label="Write symbol" />
         <span className="text-slate-500">,</span>
         <select value={parts.direction} onChange={e => update({ direction: e.target.value as 'L' | 'R' | 'S' })} className={`${cellSelectClass} !w-12`} aria-label="Head direction">
           <option value="L">L</option><option value="R">R</option><option value="S">S</option>
@@ -234,17 +235,17 @@ const StructuredTransitionTable = ({ nodes, edges, automatonType, tapeCount = 1 
           }))
         ) : automatonType === 'PDA' ? (
           <>
-            <input value={draft.read} onChange={e => setDraft(d => ({ ...d, read: e.target.value }))} placeholder="ε" className={narrowInputClass} aria-label="New read symbol" />
+            <input value={draft.read} onChange={e => setDraft(d => ({ ...d, read: autoReplaceFormalSymbols(e.target.value) }))} placeholder="ε" className={narrowInputClass} aria-label="New read symbol" />
             <span className="text-slate-500">,</span>
-            <input value={draft.pop} onChange={e => setDraft(d => ({ ...d, pop: e.target.value }))} placeholder="ε" className={narrowInputClass} aria-label="New pop symbol" />
+            <input value={draft.pop} onChange={e => setDraft(d => ({ ...d, pop: autoReplaceFormalSymbols(e.target.value) }))} placeholder="ε" className={narrowInputClass} aria-label="New pop symbol" />
             <span className="text-slate-500">→</span>
-            <input value={draft.push} onChange={e => setDraft(d => ({ ...d, push: e.target.value }))} placeholder="ε" className={`${narrowInputClass} w-20`} aria-label="New push symbols" />
+            <input value={draft.push} onChange={e => setDraft(d => ({ ...d, push: autoReplaceFormalSymbols(e.target.value) }))} placeholder="ε" className={`${narrowInputClass} w-20`} aria-label="New push symbols" />
           </>
         ) : (
           <>
-            <input value={draft.read} onChange={e => setDraft(d => ({ ...d, read: e.target.value }))} placeholder="ε" className={narrowInputClass} aria-label="New read symbol" />
+            <input value={draft.read} onChange={e => setDraft(d => ({ ...d, read: autoReplaceFormalSymbols(e.target.value) }))} placeholder="ε" className={narrowInputClass} aria-label="New read symbol" />
             <span className="text-slate-500">→</span>
-            <input value={draft.write} onChange={e => setDraft(d => ({ ...d, write: e.target.value }))} placeholder="ε" className={narrowInputClass} aria-label="New write symbol" />
+            <input value={draft.write} onChange={e => setDraft(d => ({ ...d, write: autoReplaceFormalSymbols(e.target.value) }))} placeholder="ε" className={narrowInputClass} aria-label="New write symbol" />
             <span className="text-slate-500">,</span>
             <select value={draft.direction} onChange={e => setDraft(d => ({ ...d, direction: e.target.value as 'L' | 'R' | 'S' }))} className={`${cellSelectClass} !w-12`} aria-label="New head direction">
               <option value="L">L</option><option value="R">R</option><option value="S">S</option>
@@ -254,6 +255,9 @@ const StructuredTransitionTable = ({ nodes, edges, automatonType, tapeCount = 1 
         <span className="text-slate-500">→</span>
         <StateSelect nodes={nodes} value={draft.target} onChange={target => setDraft(d => ({ ...d, target }))} />
         <button type="button" onClick={addDraftRow} className="ml-auto px-2 py-1 rounded bg-[#00e5a3]/15 border border-[#00e5a3]/40 text-[#00e5a3] font-bold cursor-pointer">+ Add</button>
+      </div>
+      <div className="p-1.5 border-t border-white/5">
+        <SymbolPalette onInsertSymbol={sym => setDraft(d => ({ ...d, read: (d.read || '') + sym }))} />
       </div>
     </div>
   );
@@ -273,12 +277,13 @@ export const TransitionTable = ({ nodes, edges, automatonType }: { nodes: Node[]
           {automatonType === 'PDA' ? 'Stack alphabet' : 'Tape alphabet'} (comma separated)
           <input
             value={declaredAlphabet.join(', ')}
-            onChange={event => setDeclaredAlphabet(event.target.value.split(','))}
+            onChange={event => setDeclaredAlphabet(autoReplaceFormalSymbols(event.target.value).split(','))}
             placeholder={automatonType === 'PDA' ? 'Z, A, B' : '0, 1, _'}
             className="mt-1 w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-white font-mono"
           />
           <span className="block mt-1 text-slate-600 normal-case">Optional — declare it to flag {automatonType === 'PDA' ? 'pop/push' : 'read/write'} symbols outside this set.</span>
         </label>
+        <SymbolPalette className="mb-3" onInsertSymbol={sym => setDeclaredAlphabet([...declaredAlphabet, sym])} />
         <StructuredTransitionTable key={automatonType === 'TM' ? tapeCount : 1} nodes={nodes} edges={edges} automatonType={automatonType} tapeCount={automatonType === 'TM' ? tapeCount : 1} />
       </section>
     );
@@ -290,8 +295,9 @@ export const TransitionTable = ({ nodes, edges, automatonType }: { nodes: Node[]
       <h2 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 mb-3">Transition table</h2>
       <label className="text-[10px] text-slate-500 block mb-2">
         Alphabet (comma separated)
-        <input value={alphabet.join(', ')} onChange={event => setAlphabet(event.target.value.split(','))} placeholder="0, 1" className="mt-1 w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-white font-mono" />
+        <input value={alphabet.join(', ')} onChange={event => setAlphabet(autoReplaceFormalSymbols(event.target.value).split(','))} placeholder="0, 1" className="mt-1 w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-white font-mono" />
       </label>
+      <SymbolPalette className="mb-3" onInsertSymbol={sym => setAlphabet([...alphabet, sym])} />
       <GridTransitionTable nodes={nodes} edges={edges} automatonType={automatonType} alphabet={alphabet} />
     </section>
   );

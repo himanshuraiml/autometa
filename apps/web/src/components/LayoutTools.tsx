@@ -9,7 +9,7 @@ const Tooltip = ({ children }: { children: React.ReactNode }) => (
 
 export const LayoutTools = ({ snapToGrid, setSnapToGrid }: { snapToGrid: boolean; setSnapToGrid: (value: boolean) => void }) => {
   const { autoLayout, alignNodes, distributeNodes } = useGraphStore();
-  return <div className="absolute top-3 left-3 z-10 flex items-center gap-1 rounded-lg border border-white/10 bg-[#0b1220]/90 p-1 shadow-xl">
+  return <div className="flex items-center gap-1 rounded-lg border border-white/10 bg-[#0b1220]/90 p-1 shadow-xl">
     <button onClick={autoLayout} aria-label="Auto layout (layered by transitions)" className="relative group p-1.5 rounded text-slate-300 hover:text-[#00e5a3] hover:bg-white/5 border-0 bg-transparent cursor-pointer">
       <Grid3X3 size={15} />
       <Tooltip>Auto Layout (Layered by transitions)</Tooltip>

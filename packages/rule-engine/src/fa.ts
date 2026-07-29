@@ -1,5 +1,6 @@
 import type { Automaton, AutomatonNode, AutomatonEdge } from '@autometa/simulation-engine';
 import { getEpsilonClosure, isEpsilon } from '@autometa/simulation-engine';
+import { regexToNfa } from './regex';
 
 export interface EquivalenceResult {
   equivalent: boolean;
@@ -583,9 +584,138 @@ export const minimizeDFA = (dfa: Automaton): Automaton => {
     });
   });
 
-  return {
+  return normalizeAutomatonStateLabels({
     nodes: minNodes,
     edges: minEdges
+  });
+};
+
+/**
+ * Normalizes state IDs and labels in an automaton to clean sequential names (q0, q1, q2...)
+ * with q0 as the start state. Optionally removes dead states (non-accepting states that
+ * cannot reach any accept state).
+ */
+export const normalizeAutomatonStateLabels = (automaton: Automaton, removeDeadStates: boolean = false): Automaton => {
+  const startNode = automaton.nodes.find(n => n.isStart);
+  if (!startNode) return automaton;
+
+  // 1. Find reachable states from start state (BFS)
+  const reachableFromStart = new Set<string>();
+  const queue = [startNode.id];
+  reachableFromStart.add(startNode.id);
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    automaton.edges.forEach(e => {
+      if (e.source === current && !reachableFromStart.has(e.target)) {
+        reachableFromStart.add(e.target);
+        queue.push(e.target);
+      }
+    });
+  }
+
+  // 2. Find states that can reach an accept state (Backward BFS from accept states)
+  const canReachAccept = new Set<string>();
+  const acceptNodes = automaton.nodes.filter(n => n.isAccept);
+
+  if (acceptNodes.length > 0) {
+    const backQueue = acceptNodes.map(n => n.id);
+    acceptNodes.forEach(n => canReachAccept.add(n.id));
+
+    while (backQueue.length > 0) {
+      const current = backQueue.shift()!;
+      automaton.edges.forEach(e => {
+        if (e.target === current && !canReachAccept.has(e.source)) {
+          canReachAccept.add(e.source);
+          backQueue.push(e.source);
+        }
+      });
+    }
+  }
+
+  // Determine valid states
+  const validNodeIds = new Set<string>();
+  automaton.nodes.forEach(n => {
+    if (!reachableFromStart.has(n.id)) return;
+    if (removeDeadStates && acceptNodes.length > 0 && !n.isAccept && !canReachAccept.has(n.id)) {
+      return; // Skip dead state
+    }
+    validNodeIds.add(n.id);
+  });
+
+  if (!validNodeIds.has(startNode.id)) {
+    validNodeIds.add(startNode.id);
+  }
+
+  // Order nodes by BFS from start state
+  const orderedIds: string[] = [startNode.id];
+  const bfsQueue = [startNode.id];
+  const visitedOrder = new Set<string>([startNode.id]);
+
+  while (bfsQueue.length > 0) {
+    const curr = bfsQueue.shift()!;
+    automaton.edges.forEach(e => {
+      if (e.source === curr && validNodeIds.has(e.target) && !visitedOrder.has(e.target)) {
+        visitedOrder.add(e.target);
+        orderedIds.push(e.target);
+        bfsQueue.push(e.target);
+      }
+    });
+  }
+
+  // Add any remaining valid nodes not caught in BFS
+  automaton.nodes.forEach(n => {
+    if (validNodeIds.has(n.id) && !visitedOrder.has(n.id)) {
+      orderedIds.push(n.id);
+    }
+  });
+
+  // Map old state ID -> clean label "q0", "q1", "q2"...
+  const idMap = new Map<string, string>();
+  orderedIds.forEach((oldId, idx) => {
+    idMap.set(oldId, `q${idx}`);
+  });
+
+  const cleanNodes: AutomatonNode[] = orderedIds.map(oldId => {
+    const orig = automaton.nodes.find(n => n.id === oldId)!;
+    const cleanId = idMap.get(oldId)!;
+    return {
+      id: cleanId,
+      label: cleanId,
+      isStart: orig.id === startNode.id,
+      isAccept: orig.isAccept
+    };
+  });
+
+  // Map edges and consolidate multiple symbols between same source and target
+  const edgeMap = new Map<string, Set<string>>();
+
+  automaton.edges.forEach(e => {
+    if (validNodeIds.has(e.source) && validNodeIds.has(e.target)) {
+      const srcClean = idMap.get(e.source)!;
+      const tgtClean = idMap.get(e.target)!;
+      const key = `${srcClean}->${tgtClean}`;
+      if (!edgeMap.has(key)) edgeMap.set(key, new Set());
+      e.symbols.forEach(s => edgeMap.get(key)!.add(s));
+    }
+  });
+
+  const cleanEdges: AutomatonEdge[] = [];
+  let edgeCounter = 0;
+
+  edgeMap.forEach((symbols, key) => {
+    const [source, target] = key.split('->');
+    cleanEdges.push({
+      id: `e-${source}-${target}-${edgeCounter++}`,
+      source,
+      target,
+      symbols: Array.from(symbols).sort()
+    });
+  });
+
+  return {
+    nodes: cleanNodes,
+    edges: cleanEdges
   };
 };
 
@@ -868,4 +998,96 @@ export const minimizeDFASteps = (dfa: Automaton): MinimizationWalkthrough => {
     iterations,
     finalDfa: minimizeDFA(dfa)
   };
+};
+
+/** Direct 1-click conversion from Regular Expression pattern to a minimal DFA. */
+export const regexToDfa = (pattern: string): Automaton => {
+  const nfa = regexToNfa(pattern);
+  const dfa = nfaToDfa(nfa);
+  return minimizeDFA(dfa);
+};
+
+/**
+ * Constructs a minimal DFA accepting exactly the finite set of strings given.
+ * Builds a trie prefix tree and runs DFA minimization.
+ */
+export const stringListToDfa = (words: string[]): Automaton => {
+  const cleanWords = words.map(w => w.trim()).filter((w, i, arr) => arr.indexOf(w) === i);
+  if (cleanWords.length === 0) {
+    return {
+      nodes: [{ id: 'q0', label: 'q0', isStart: true, isAccept: false }],
+      edges: []
+    };
+  }
+
+  interface TrieNode {
+    id: string;
+    label: string;
+    isAccept: boolean;
+    children: Map<string, TrieNode>;
+  }
+
+  let counter = 0;
+  const root: TrieNode = { id: 'q0', label: 'q0', isAccept: false, children: new Map() };
+
+  for (const word of cleanWords) {
+    if (word === '' || word === 'ε') {
+      root.isAccept = true;
+      continue;
+    }
+    let current = root;
+    for (const char of word) {
+      if (!current.children.has(char)) {
+        counter++;
+        const child: TrieNode = { id: `q${counter}`, label: `q${counter}`, isAccept: false, children: new Map() };
+        current.children.set(char, child);
+      }
+      current = current.children.get(char)!;
+    }
+    current.isAccept = true;
+  }
+
+  const nodes: AutomatonNode[] = [];
+  const edges: AutomatonEdge[] = [];
+  const queue: TrieNode[] = [root];
+  const visited = new Set<string>([root.id]);
+
+  while (queue.length > 0) {
+    const node = queue.shift()!;
+    nodes.push({
+      id: node.id,
+      label: node.label,
+      isStart: node.id === 'q0',
+      isAccept: node.isAccept
+    });
+
+    node.children.forEach((child, sym) => {
+      edges.push({
+        id: `e-${node.id}-${child.id}-${sym}`,
+        source: node.id,
+        target: child.id,
+        symbols: [sym]
+      });
+
+      if (!visited.has(child.id)) {
+        visited.add(child.id);
+        queue.push(child);
+      }
+    });
+  }
+
+  const rawDfa: Automaton = { nodes, edges };
+  return minimizeDFA(rawDfa);
+};
+
+/**
+ * Minimizes a DFA using Brzozowski's algorithm:
+ * DFA_min = subsetConstruct(reverseNFA(subsetConstruct(reverseNFA(dfa))))
+ */
+export const brzozowskiMinimize = (dfa: Automaton): Automaton => {
+  const rev1 = reverseNFA(dfa);
+  const dfa1 = nfaToDfa(rev1);
+  const rev2 = reverseNFA(dfa1);
+  const minDfa = nfaToDfa(rev2);
+  return minDfa;
 };

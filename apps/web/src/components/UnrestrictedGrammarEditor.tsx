@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Sparkles, Play } from 'lucide-react';
-import { deriveUnrestricted, parseUnrestrictedGrammar, formatSententialForm } from '@autometa/rule-engine';
+import { deriveUnrestricted, deriveContextSensitive, parseUnrestrictedGrammar, formatSententialForm } from '@autometa/rule-engine';
 import type { UnrestrictedDerivationStep } from '@autometa/rule-engine';
 
 const DEFAULT_SOURCE = `S -> a S B c
@@ -33,6 +33,7 @@ export const UnrestrictedGrammarEditor = () => {
   const [steps, setSteps] = useState<UnrestrictedDerivationStep[] | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [notFoundMessage, setNotFoundMessage] = useState<string | null>(null);
+  const [contextSensitiveMode, setContextSensitiveMode] = useState(false);
 
   const handleDerive = () => {
     setParseError(null);
@@ -41,6 +42,20 @@ export const UnrestrictedGrammarEditor = () => {
     try {
       const grammar = parseUnrestrictedGrammar(source, startSymbol.trim());
       const targetSymbols = target.trim().split(/\s+/).filter(Boolean);
+
+      if (contextSensitiveMode) {
+        const outcome = deriveContextSensitive(grammar, targetSymbols, MAX_DERIVATION_STEPS);
+        if (outcome.kind === 'invalid-grammar') {
+          setParseError(outcome.reason);
+        } else if (outcome.kind === 'found') {
+          setSteps(outcome.steps);
+          setStepIndex(0);
+        } else {
+          setNotFoundMessage(`No derivation found within ${outcome.exploredCount} explored sentential forms (tightly bounded to the target's length, since this grammar is non-contracting).`);
+        }
+        return;
+      }
+
       const result = deriveUnrestricted(grammar, targetSymbols, MAX_DERIVATION_STEPS);
       if (result.found) {
         setSteps(result.steps);
@@ -82,6 +97,10 @@ export const UnrestrictedGrammarEditor = () => {
             <label className="text-[10px] text-slate-400 shrink-0">Target string</label>
             <input value={target} onChange={e => setTarget(e.target.value)} placeholder="a a b b c c" className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-xs font-mono text-white" />
           </div>
+          <label className="flex items-center gap-2 text-[10px] text-slate-400 cursor-pointer">
+            <input type="checkbox" checked={contextSensitiveMode} onChange={e => setContextSensitiveMode(e.target.checked)} className="accent-[#00e5a3]" />
+            Context-Sensitive mode (Type-1) — validates the grammar is non-contracting, then searches with a tight, provably-sound bound instead of Type-0's heuristic one.
+          </label>
           <button
             onClick={handleDerive}
             className="w-full flex items-center justify-center gap-2 mt-1 px-3 py-2 rounded-lg bg-[#00e5a3] hover:opacity-90 text-black font-bold text-xs cursor-pointer border-none"

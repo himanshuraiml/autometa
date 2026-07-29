@@ -711,9 +711,23 @@ export const simulatePDAAllBranches = (
  * Simulates a Turing Machine
  * Edges labels format: "read -> write, direction" (e.g. "0 -> 0, R" or "_ -> 1, L")
  */
-export const simulateTuringMachine = (automaton: Automaton, inputString: string, blankSymbol: string = '_'): SimulationResult => {
+export const simulateTuringMachine = (
+  automaton: Automaton,
+  inputString: string,
+  blankSymbol: string = '_',
+  options?: { tapeBound?: 'input-length' | number }
+): SimulationResult => {
   const events: SimulationEvent[] = [];
   let time = 0;
+  // A Linear Bounded Automaton is a TM whose tape is restricted to (a linear
+  // multiple of) the input's own length — `'input-length'` is the standard
+  // single-tape-cell-per-input-symbol case. `null` means unbounded (default,
+  // ordinary TM behavior).
+  const tapeBound = options?.tapeBound === undefined
+    ? null
+    : options.tapeBound === 'input-length'
+      ? Math.max(inputString.length, 1)
+      : options.tapeBound;
 
   const startNode = automaton.nodes.find(n => n.isStart);
   if (!startNode) {
@@ -810,11 +824,20 @@ export const simulateTuringMachine = (automaton: Automaton, inputString: string,
 
     tape[headIndex] = matchTrans.writeSymbol;
 
+    let nextHeadIndex = headIndex;
     if (matchTrans.direction === 'L') {
-      headIndex--;
+      nextHeadIndex--;
     } else if (matchTrans.direction === 'R') {
-      headIndex++;
+      nextHeadIndex++;
     }
+
+    if (tapeBound !== null && (nextHeadIndex < 0 || nextHeadIndex >= tapeBound)) {
+      // LBA convention: a move that would leave the bounded tape region halts
+      // and rejects, rather than continuing on an unbounded tape.
+      halted = true;
+      break;
+    }
+    headIndex = nextHeadIndex;
 
     events.push({
       time: time++,
@@ -864,6 +887,10 @@ export const simulateTuringMachine = (automaton: Automaton, inputString: string,
     events
   };
 };
+
+/** A Linear Bounded Automaton: a Turing machine whose tape is restricted to exactly the input's length. */
+export const simulateLBA = (automaton: Automaton, inputString: string, blankSymbol: string = '_'): SimulationResult =>
+  simulateTuringMachine(automaton, inputString, blankSymbol, { tapeBound: 'input-length' });
 
 /**
  * Parses a multi-tape TM transition label: `r1,r2,...,rN -> w1,w2,...,wN ; d1,d2,...,dN`

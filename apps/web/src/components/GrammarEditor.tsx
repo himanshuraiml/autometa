@@ -26,6 +26,8 @@ import type { AutomatonType } from '../utils/flowAutomaton';
 import { useToast } from './ToastProvider';
 import { TestSuitePanel } from './TestSuitePanel';
 import type { MachineTestCase } from '../store/useGraphStore';
+import { SymbolPalette, autoReplaceFormalSymbols } from './SymbolPalette';
+import { ChomskyInspector } from './ChomskyInspector';
 
 interface Rule {
   left: string;
@@ -34,6 +36,8 @@ interface Rule {
 
 interface GrammarEditorProps {
   onLoadAutomaton: (automaton: Automaton, type: AutomatonType) => void;
+  /** Rules pushed in from an external conversion (e.g. the Conversion Hub's PDA -> CFG tab). */
+  initialRules?: CFGRules | null;
 }
 
 const toGrammarObj = (rules: Rule[]): CFGRules => {
@@ -41,6 +45,9 @@ const toGrammarObj = (rules: Rule[]): CFGRules => {
   rules.forEach(r => { grammarObj[r.left] = r.right.map(prod => prod.trim() === 'ε' ? '' : prod); });
   return grammarObj;
 };
+
+const fromGrammarObj = (grammar: CFGRules): Rule[] =>
+  Object.entries(grammar).map(([left, right]) => ({ left, right: right.map(p => p.trim() === '' ? 'ε' : p) }));
 
 const formatRulesList = (g: CFGRules): string[] =>
   Object.keys(g).map(nt => `${nt} → ${g[nt].map(p => p === '' ? 'ε' : p).join(' | ')}`);
@@ -64,12 +71,13 @@ const StepperControls = ({ index, total, onPrev, onNext }: { index: number; tota
   </div>
 );
 
-export const GrammarEditor: React.FC<GrammarEditorProps> = ({ onLoadAutomaton }) => {
+export const GrammarEditor: React.FC<GrammarEditorProps> = ({ onLoadAutomaton, initialRules }) => {
   const { showToast } = useToast();
-  // Pre-seed with Balanced Parentheses grammar: S -> ( S ) | ε
-  const [rules, setRules] = useState<Rule[]>([
-    { left: 'S', right: ['( S )', '()', 'ε'] }
-  ]);
+  // Pre-seed with Balanced Parentheses grammar: S -> ( S ) | ε — unless rules were
+  // pushed in externally (e.g. a PDA -> CFG conversion loaded from the Conversion Hub).
+  const [rules, setRules] = useState<Rule[]>(() =>
+    initialRules ? fromGrammarObj(initialRules) : [{ left: 'S', right: ['( S )', '()', 'ε'] }]
+  );
   const [newLeft, setNewLeft] = useState('');
   const [newRight, setNewRight] = useState('');
 
@@ -501,14 +509,14 @@ export const GrammarEditor: React.FC<GrammarEditorProps> = ({ onLoadAutomaton })
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-[#050811] text-white p-6 border-l border-white/5 overflow-y-auto">
-      <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-4 shrink-0">
+    <div className="w-full h-full flex flex-col bg-[var(--bg-primary)] text-[var(--text-main)] p-6 border-l border-[var(--border-color)] overflow-y-auto">
+      <div className="flex items-center justify-between mb-6 border-b border-[var(--border-color)] pb-4 shrink-0">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-[#00e5a3] animate-pulse" />
-          <h2 className="text-sm font-black tracking-widest uppercase text-slate-100">CFG & Parser Walkthroughs</h2>
+          <h2 className="text-sm font-black tracking-widest uppercase text-[var(--text-main)]">CFG & Parser Walkthroughs</h2>
         </div>
         {/* Switcher Tab */}
-        <div className="flex bg-black/40 p-1 rounded-lg border border-white/5 text-xs font-bold">
+        <div className="flex bg-[var(--bg-secondary)] p-1 rounded-lg border border-[var(--border-color)] text-xs font-bold">
           {(['derivation', 'simplification', 'parsing'] as const).map(tab => (
             <button
               key={tab}
@@ -516,7 +524,7 @@ export const GrammarEditor: React.FC<GrammarEditorProps> = ({ onLoadAutomaton })
               className={`px-3 py-1.5 rounded-md uppercase cursor-pointer border-none transition-all focus:outline-none focus:ring-2 focus:ring-[#00e5a3]/30 ${
                 activeTab === tab
                   ? 'bg-gradient-to-r from-[#00e5a3] to-[#8b5cf6] text-black shadow-md font-extrabold'
-                  : 'text-slate-400 hover:text-white bg-transparent'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-main)] bg-transparent'
               }`}
             >
               {tab}
@@ -527,7 +535,7 @@ export const GrammarEditor: React.FC<GrammarEditorProps> = ({ onLoadAutomaton })
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
         {/* Grammar Rules Definition Box */}
-        <div className="lg:col-span-1 border border-white/5 bg-[#0b121e]/70 p-4 rounded-xl flex flex-col gap-4 shadow-md">
+        <div className="lg:col-span-1 border border-[var(--border-color)] bg-[var(--card-bg)] p-4 rounded-xl flex flex-col gap-4 shadow-sm">
           <h3 className="text-[10px] font-black text-[#00e5a3] uppercase tracking-widest">Production Rules</h3>
 
           <div className="flex flex-col gap-1.5">
@@ -539,29 +547,29 @@ export const GrammarEditor: React.FC<GrammarEditorProps> = ({ onLoadAutomaton })
                 if (event.target.value !== '') loadGrammarExample(Number(event.target.value));
                 event.currentTarget.value = '';
               }}
-              className="w-full bg-black/50 border border-white/10 rounded-lg p-2 text-xs text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#00e5a3]/30 focus:border-[#00e5a3]"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-2 text-xs text-[var(--text-main)] font-medium focus:outline-none focus:ring-2 focus:ring-[#00e5a3]/30 focus:border-[#00e5a3]"
             >
               <option value="">Load an example…</option>
               {GRAMMAR_EXAMPLES.map((example, index) => (
                 <option key={example.name} value={index}>{example.name}</option>
               ))}
             </select>
-            <span className="text-[10px] text-slate-500">Five CFGs covering nesting, counting, palindromes, and expressions.</span>
+            <span className="text-[10px] text-[var(--text-muted)]">Five CFGs covering nesting, counting, palindromes, and expressions.</span>
           </div>
 
           <div className="flex-1 overflow-y-auto flex flex-col gap-2 custom-scrollbar">
             {rules.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center py-10 px-4 text-center border border-dashed border-white/10 rounded-xl bg-black/20 text-slate-500 text-xs">
-                <Layers className="w-6 h-6 mb-2 text-slate-600" />
+              <div className="flex-1 flex flex-col items-center justify-center py-10 px-4 text-center border border-dashed border-[var(--border-color)] rounded-xl bg-[var(--bg-secondary)]/50 text-[var(--text-muted)] text-xs">
+                <Layers className="w-6 h-6 mb-2 text-[var(--text-dim)]" />
                 No rules defined. Add a production below to begin.
               </div>
             ) : (
               rules.map((rule, idx) => (
-                <div key={idx} className="flex items-center justify-between bg-black/40 p-2.5 rounded-lg border border-white/5 font-mono text-sm">
+                <div key={idx} className="flex items-center justify-between bg-[var(--bg-secondary)] p-2.5 rounded-lg border border-[var(--border-color)] font-mono text-sm">
                   <span>
                     <strong className="text-[#00e5a3]">{rule.left}</strong>
-                    <span className="text-slate-500 mx-2">→</span>
-                    <span className="text-white">{rule.right.map(r => r === '' || r === 'ε' ? 'ε' : r).join(' | ')}</span>
+                    <span className="text-[var(--text-muted)] mx-2">→</span>
+                    <span className="text-[var(--text-main)]">{rule.right.map(r => r === '' || r === 'ε' ? 'ε' : r).join(' | ')}</span>
                   </span>
                   <button
                     onClick={() => removeRule(idx)}
@@ -575,33 +583,38 @@ export const GrammarEditor: React.FC<GrammarEditorProps> = ({ onLoadAutomaton })
             )}
           </div>
 
-          <div className="flex flex-col gap-2 border-t border-white/5 pt-3">
-            <span className="text-[10px] text-slate-400 uppercase font-bold">Add Rule</span>
+          <div className="flex flex-col gap-2 border-t border-[var(--border-color)] pt-3">
+            <span className="text-[10px] text-[var(--text-muted)] uppercase font-bold">Add Rule</span>
             <div className="flex gap-2">
               <input
                 type="text"
                 placeholder="Left"
                 value={newLeft}
                 onChange={e => setNewLeft(e.target.value)}
-                className="w-16 bg-black/50 border border-white/10 rounded-lg p-2 text-center text-sm text-[#00e5a3] font-mono focus:outline-none focus:ring-2 focus:ring-[#00e5a3]/30 focus:border-[#00e5a3]"
+                className="w-16 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-2 text-center text-sm text-[#00e5a3] font-mono focus:outline-none focus:ring-2 focus:ring-[#00e5a3]/30 focus:border-[#00e5a3]"
                 aria-label="New production rule left side"
               />
               <input
                 type="text"
                 placeholder="Right (e.g. a S b | ε)"
                 value={newRight}
-                onChange={e => setNewRight(e.target.value)}
-                className="flex-1 bg-black/50 border border-white/10 rounded-lg p-2 text-sm text-white font-mono focus:outline-none focus:ring-2 focus:ring-[#00e5a3]/30 focus:border-[#00e5a3]"
+                onChange={e => setNewRight(autoReplaceFormalSymbols(e.target.value))}
+                className="flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-2 text-sm text-[var(--text-main)] font-mono focus:outline-none focus:ring-2 focus:ring-[#00e5a3]/30 focus:border-[#00e5a3]"
                 aria-label="New production rule right side alternatives"
               />
             </div>
+            <SymbolPalette
+              onInsertSymbol={(sym) => setNewRight(prev => prev ? `${prev} ${sym}` : sym)}
+            />
             <button
               onClick={addRule}
-              className="w-full bg-[#00e5a3] hover:bg-[#00c58e] text-black font-extrabold py-2 rounded-lg text-xs cursor-pointer border-none uppercase transition-all shadow-glow-green/20 focus:outline-none focus:ring-2 focus:ring-[#00e5a3]/30"
+              className="w-full bg-[#00e5a3] hover:bg-[#00c58c] text-black font-extrabold text-xs py-2 rounded-lg cursor-pointer border-none transition-all focus:outline-none focus:ring-2 focus:ring-[#00e5a3]/30"
             >
-              Add Production
+              Add Rule
             </button>
           </div>
+
+          <ChomskyInspector rules={toGrammarObj(rules)} startSymbol={rules[0]?.left || 'S'} />
         </div>
 
         {/* Dynamic visualizers tabs */}

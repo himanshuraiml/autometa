@@ -1,4 +1,11 @@
 import type { AutomatonType } from './flowAutomaton';
+import { parsePdaTransitionParts, type PdaTransitionParts } from '@autometa/rule-engine';
+
+// Re-exported so existing call sites in this app keep working — the canonical
+// definition lives in rule-engine since pda-cfg.ts's PDA -> CFG conversion
+// needs it too, and a package shouldn't reach into an app for pure logic.
+export { parsePdaTransitionParts };
+export type { PdaTransitionParts };
 
 export interface TransitionParseIssue {
   code: 'empty-label' | 'invalid-transition';
@@ -60,15 +67,6 @@ export const parseTransitionLabel = (label: string, type: AutomatonType, tapeCou
   }
 
   return { transitions, issues: [] };
-};
-
-/** Structured fields behind a single `input, pop -> push` PDA transition string. */
-export interface PdaTransitionParts { read: string; pop: string; push: string; }
-
-/** Parses one already-split PDA transition (see `parseTransitionLabel`) into its fields. */
-export const parsePdaTransitionParts = (text: string): PdaTransitionParts => {
-  const match = text.match(/^\s*([^,]*?)\s*,\s*([^,]*?)\s*->\s*(.*?)\s*$/);
-  return match ? { read: match[1], pop: match[2], push: match[3] } : { read: '', pop: '', push: '' };
 };
 
 /** Inverse of `parsePdaTransitionParts` — blank fields render as ε, matching the PDA epsilon convention used elsewhere (e.g. `cfgToPDA`). */

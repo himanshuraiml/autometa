@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Node } from '@xyflow/react';
-import { FileDown, FileUp, Undo2, Redo2 } from 'lucide-react';
+import { FileDown, FileUp, Undo2, Redo2, FolderOpen, Save, Trash2 } from 'lucide-react';
 import { Button } from '@autometa/ui';
 import { useGraphStore } from '../store/useGraphStore';
 import { useToast } from './ToastProvider';
@@ -97,7 +97,7 @@ export const EditorHeader = ({
         </div>
       </div>
 
-      {/* Right: Workspace & File Control Actions */}
+      {/* Right: Workspace & File Control Actions, grouped by what they act on */}
       <div className="flex items-center gap-2">
         {isEditorView && (
           <>
@@ -119,20 +119,20 @@ export const EditorHeader = ({
             >
               <Redo2 className="w-3.5 h-3.5" />
             </Button>
+            <span className="h-4 w-px bg-[var(--border-color)] mx-1" />
           </>
         )}
-        {/* Database actions */}
-        <Button variant="secondary" onClick={persistence.loadProjectsFromDB} className="flex items-center gap-1.5 !px-3 !py-1.5 text-xs border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-main)] hover:bg-[var(--bg-secondary)]">
-          Load DB
-        </Button>
-        <Button variant="secondary" onClick={() => persistence.setIsProjectsListOpen(true)} className="flex items-center gap-1.5 !px-3 !py-1.5 text-xs border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-main)] hover:bg-[var(--bg-secondary)]">
-          Save DB
+
+        {/* Project persistence: one entry point into the save/load dialog, always fetching fresh data */}
+        <Button variant="secondary" onClick={persistence.loadProjectsFromDB} title="Browse or save projects in the local database" className="flex items-center gap-1.5 !px-3 !py-1.5 text-xs border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-main)] hover:bg-[var(--bg-secondary)]">
+          <FolderOpen className="w-3.5 h-3.5" /> Projects
         </Button>
         {persistence.currentProjectId !== null && (
           <Button variant="secondary" onClick={onSaveVersion} title="Save a named snapshot of this project you can restore later" className="flex items-center gap-1.5 !px-3 !py-1.5 text-xs border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-main)] hover:bg-[var(--bg-secondary)]">
-            Save Version
+            <Save className="w-3.5 h-3.5" /> Save Version
           </Button>
         )}
+        <span className="h-4 w-px bg-[var(--border-color)] mx-1" />
 
         {/* Project File actions */}
         <div className="relative">
@@ -221,8 +221,19 @@ export const EditorHeader = ({
           <input type="file" accept=".project,.jff" onChange={persistence.importProject} className="hidden" />
         </label>
 
-        <Button variant="danger" onClick={() => { stopSimulation(); clearGraph(); persistence.setCurrentProjectId(null); }} className="flex items-center gap-1.5 !px-3 !py-1.5 text-xs bg-[var(--color-rose)] text-white hover:bg-[var(--color-rose)]/90 border-transparent">
-          Reset
+        <span className="h-4 w-px bg-[var(--border-color)] mx-1" />
+        <Button
+          variant="danger"
+          onClick={() => {
+            if (nodes.length > 0 && !window.confirm('Clear the canvas? This removes every state and transition (undo can still bring it back).')) return;
+            stopSimulation();
+            clearGraph();
+            persistence.setCurrentProjectId(null);
+          }}
+          title="Clear the canvas"
+          className="flex items-center gap-1.5 !px-3 !py-1.5 text-xs bg-[var(--color-rose)] text-white hover:bg-[var(--color-rose)]/90 border-transparent"
+        >
+          <Trash2 className="w-3.5 h-3.5" /> Reset
         </Button>
       </div>
     </header>

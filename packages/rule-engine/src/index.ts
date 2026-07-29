@@ -24,3 +24,7 @@ export * from './grading';
 export * from './exerciseGenerator';
 export * from './jflap';
 export * from './unrestricted';
+export * from './pda-cfg';
+export * from './csh';
+export * from './language-parser';
+export * from './regexSimplify';

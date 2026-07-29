@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Node, Edge } from '@xyflow/react';
 import {
-  simulateDFA, simulateNFA, simulateMealy, simulateMoore, simulatePDA, simulateTuringMachine, simulateMultiTapeTuringMachine
+  simulateDFA, simulateNFA, simulateMealy, simulateMoore, simulatePDA, simulateTuringMachine, simulateMultiTapeTuringMachine, simulateLBA
 } from '@autometa/simulation-engine';
 import type { SimulationEvent, PdaAcceptanceMode } from '@autometa/simulation-engine';
 import { generateTimeline } from '@autometa/timeline-engine';
@@ -17,6 +17,25 @@ export interface SimulationRunResult {
   events: SimulationEvent[];
   outputString?: string;
 }
+
+/**
+ * A cheap structural signature of the canvas: identity/geometry/label fields
+ * only, deliberately excluding the visual-only fields `updateVisualStates`
+ * mutates every animation frame (glow, scale, isActive, traversalProgress).
+ * Used to tell "the simulation is animating" apart from "the user actually
+ * edited the graph" when both look like a `nodes`/`edges` change.
+ */
+const structuralFingerprint = (nodes: Node[], edges: Edge[]): string => {
+  const nodePart = nodes.map(n => [
+    n.id, n.position.x, n.position.y,
+    n.data?.label, n.data?.isStart, n.data?.isAccept, n.data?.isReject,
+  ]);
+  const edgePart = edges.map(e => [
+    e.id, e.source, e.target,
+    e.data?.label, e.data?.loopDirection, e.data?.parallelOffset,
+  ]);
+  return JSON.stringify([nodePart, edgePart]);
+};
 
 /** Push an animation-engine render state into the canvas nodes/edges. */
 export const updateVisualStates = (renderState: RenderState) => {
@@ -62,6 +81,7 @@ export function useSimulationPlayback({ automatonType, onRunStarted }: UseSimula
 
   const [inputString, setInputString] = useState('abb');
   const [blankSymbol, setBlankSymbol] = useState('_');
+  const [isLbaMode, setIsLbaMode] = useState(false);
   const [stackSymbol, setStackSymbol] = useState('Z');
   const [acceptanceMode, setAcceptanceMode] = useState<PdaAcceptanceMode>('final-state');
   const [simulationEvents, setSimulationEvents] = useState<SimulationEvent[]>([]);
@@ -77,6 +97,9 @@ export function useSimulationPlayback({ automatonType, onRunStarted }: UseSimula
   const originalEdges = useRef<Edge[]>([]);
   const lastTime = useRef<number | null>(null);
   const animationFrameId = useRef<number | null>(null);
+  // Structural signature of the canvas as of the last simulation start, used
+  // to distinguish a real edit from the simulation's own visual updates.
+  const structureAtSimStart = useRef<string | null>(null);
 
   const getAutomatonData = () => toAutomaton(nodes, edges, automatonType, tapeCount);
 
@@ -96,6 +119,7 @@ export function useSimulationPlayback({ automatonType, onRunStarted }: UseSimula
     }
     if (automatonType === 'PDA') return simulatePDA(automaton, input, stackSymbol || 'Z', acceptanceMode);
     if (tapeCount > 1) return simulateMultiTapeTuringMachine(automaton, input, tapeCount, blankSymbol || '_');
+    if (isLbaMode) return simulateLBA(automaton, input, blankSymbol || '_');
     return simulateTuringMachine(automaton, input, blankSymbol || '_');
   };
   const buildSimulationResult = (): SimulationRunResult => runInput(inputString);
@@ -111,6 +135,7 @@ export function useSimulationPlayback({ automatonType, onRunStarted }: UseSimula
       originalNodes.current = [];
       originalEdges.current = [];
     }
+    structureAtSimStart.current = null;
     setSimulationEvents([]);
     setTimeline(null);
     setPlayhead(0);
@@ -122,6 +147,7 @@ export function useSimulationPlayback({ automatonType, onRunStarted }: UseSimula
     stopSimulation(); // Reset any active simulation
     originalNodes.current = JSON.parse(JSON.stringify(nodes));
     originalEdges.current = JSON.parse(JSON.stringify(edges));
+    structureAtSimStart.current = structuralFingerprint(nodes, edges);
 
     const result = buildSimulationResult();
 
@@ -139,6 +165,7 @@ export function useSimulationPlayback({ automatonType, onRunStarted }: UseSimula
     const renderState = calculateRenderState(generatedTimeline, 0);
     updateVisualStates(renderState);
     setCurrentStep(renderState.symbolIndex);
+    setIsPlaying(true); // 1-click auto-play
     onRunStarted?.();
   };
 
@@ -219,9 +246,28 @@ export function useSimulationPlayback({ automatonType, onRunStarted }: UseSimula
     }
   }, [playhead, timeline]);
 
+  // Auto-stop simulation when user edits/mutates canvas nodes or edges.
+  // `nodes`/`edges` also change every animation frame (updateVisualStates
+  // touches glow/scale/isActive/traversalProgress), so a plain "did this
+  // change" check would stop the sim on its own playback. Compare structural
+  // fingerprints instead — those fields are excluded, so only a real edit
+  // (add/move/delete/relabel) trips this.
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    if (!structureAtSimStart.current) return;
+    if (structuralFingerprint(nodes, edges) !== structureAtSimStart.current) {
+      stopSimulation();
+    }
+  }, [nodes, edges]);
+
   return {
     inputString, setInputString,
     blankSymbol, setBlankSymbol,
+    isLbaMode, setIsLbaMode,
     stackSymbol, setStackSymbol,
     acceptanceMode, setAcceptanceMode,
     simulationEvents, setSimulationEvents,

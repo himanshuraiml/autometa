@@ -12,6 +12,7 @@ import {
 } from '@xyflow/react';
 import type { Node, Edge } from '@xyflow/react';
 import type { Automaton } from '@autometa/simulation-engine';
+import type { CFGRules } from '@autometa/rule-engine';
 import '@xyflow/react/dist/style.css';
 
 import { nodeTypes, edgeTypes } from '@autometa/graph-engine';
@@ -36,6 +37,8 @@ import { ProjectsModal } from './components/ProjectsModal';
 import { GradingReportModal } from './components/GradingReportModal';
 import { LayoutTools } from './components/LayoutTools';
 import { PracticePanel } from './components/PracticePanel';
+import { CanvasQuickActionBar } from './components/CanvasQuickActionBar';
+import { ConversionHubModal } from './components/ConversionHubModal';
 import { useSimulationPlayback } from './hooks/useSimulationPlayback';
 import { useMediaExport } from './hooks/useMediaExport';
 import { useProjectPersistence } from './hooks/useProjectPersistence';
@@ -105,6 +108,7 @@ function Editor() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<SettingsTab>('ai');
   const [isHelpCenterOpen, setIsHelpCenterOpen] = useState(false);
+  const [isConversionHubOpen, setIsConversionHubOpen] = useState(false);
   const autoUpdater = useAutoUpdater();
 
   const [showEditorOnboarding, setShowEditorOnboarding] = useState(false);
@@ -274,6 +278,24 @@ function Editor() {
       setPendingMinimizerLoad(false);
     }
   }, [pendingMinimizerLoad, activeView, nodes]);
+
+  // Conversion Hub's "Load into Grammar Editor" (e.g. after a PDA -> CFG conversion)
+  // needs to switch to the Grammars view and hand the freshly-computed rules to
+  // GrammarEditor's initialRules prop, then clear itself so revisiting the tab
+  // later doesn't keep re-seeding the same grammar over the user's edits.
+  const [pendingGrammarLoad, setPendingGrammarLoad] = useState<CFGRules | null>(null);
+
+  const handleLoadGrammarFromHub = (rules: CFGRules) => {
+    setPendingGrammarLoad(rules);
+    setGrammarModel('cfg');
+    setActiveView('grammars');
+  };
+
+  useEffect(() => {
+    if (pendingGrammarLoad && activeView === 'grammars') {
+      setPendingGrammarLoad(null);
+    }
+  }, [pendingGrammarLoad, activeView]);
 
   // Dashboard "Regex to NFA" quick-start: jump to the editor and focus the regex
   // input in the Algorithms panel — no template to load, the user provides the pattern.
@@ -522,7 +544,7 @@ function Editor() {
             <div className="flex-1 min-h-0">
               <Suspense fallback={viewLoadingFallback}>
                 {grammarModel === 'cfg'
-                  ? <GrammarEditor onLoadAutomaton={handleLoadAutomatonFromTool} />
+                  ? <GrammarEditor onLoadAutomaton={handleLoadAutomatonFromTool} initialRules={pendingGrammarLoad} />
                   : <UnrestrictedGrammarEditor />}
               </Suspense>
             </div>
@@ -615,7 +637,18 @@ function Editor() {
                   </div>
                 </div>
               )}
-              {!isPresentationMode && <LayoutTools snapToGrid={snapToGrid} setSnapToGrid={setSnapToGrid} />}
+              {!isPresentationMode && (
+                <div className="absolute top-3 left-3 right-3 z-20 flex items-start gap-3 pointer-events-none">
+                  <div className="pointer-events-auto shrink-0">
+                    <LayoutTools snapToGrid={snapToGrid} setSnapToGrid={setSnapToGrid} />
+                  </div>
+                  <div className="flex-1 flex justify-center min-w-0 pointer-events-none">
+                    <div className="pointer-events-auto">
+                      <CanvasQuickActionBar onOpenConversionHub={() => setIsConversionHubOpen(true)} />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Practice mode overlay — floats over the canvas so EditorSidebar
                   (node/edge property editing) stays visible and usable. */}
@@ -671,6 +704,7 @@ function Editor() {
                   onDeleteSelectedNode={() => { if (selectedNode) { deleteNode(selectedNode.id); setSelectedNode(null); } }}
                   onDeleteSelectedEdge={() => { if (selectedEdge) { deleteEdge(selectedEdge.id); setSelectedEdge(null); } }}
                   regexInputRef={regexInputRef}
+                  onOpenConversionHub={() => setIsConversionHubOpen(true)}
                 />
               )
             )}
@@ -741,6 +775,12 @@ function Editor() {
       <EditorOnboarding
         isOpen={showEditorOnboarding}
         onClose={dismissEditorOnboarding}
+      />
+
+      <ConversionHubModal
+        isOpen={isConversionHubOpen}
+        onClose={() => setIsConversionHubOpen(false)}
+        onLoadToGrammarEditor={handleLoadGrammarFromHub}
       />
 
       <HelpCenterModal
