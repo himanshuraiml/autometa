@@ -82,15 +82,23 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: 'AUTOMETA v__VERSION__'
           releaseBody: |
-            ## What's new in v0.2.3
+            ## What's new in v0.2.4
 
-            An end-to-end Auto-Updater release for Autometa Desktop.
+            New formal-language algorithms and an editor UI cleanup.
 
-            ### Desktop Auto-Updater
-            - **Background Update Checks**: Automatically checks for new app updates on application launch.
-            - **Modern Update UI Dialog**: Interactive modal with formatted release notes, verification badge, and real-time download progress bar (download size & percentage).
-            - **Seamless App Relaunch**: Automatically installs updates and restarts the desktop application seamlessly via `@tauri-apps/plugin-process`.
-            - **Manual Update Trigger**: Check for updates anytime via the Application & Updates section in General Settings.
+            ### New Algorithms
+            - **Context-Sensitive Grammars**: derivation search for Type-1 grammars, with contracting-production validation.
+            - **Linear-Bounded Automata**: simulation support alongside the existing automaton engines.
+            - **PDA ⇄ CFG Conversions**: convert between pushdown automata and context-free grammars.
+            - **Regex Simplifier**: algebraic simplification of regular expressions without changing the matched language.
+            - **Language Description Parser**: parse informal language descriptions into grammar structures.
+
+            ### Editor UI
+            - New Conversion Hub modal, Chomsky hierarchy inspector, canvas quick-action bar, and symbol palette components.
+            - Reworked side/top panel layout for a less cluttered editor.
+
+            ### Fixes
+            - Fixed a stray corrupted byte in the Type-0/Type-1 grammar engine that could affect derivation search correctness.
 
             ---
 
