@@ -1,0 +1,24 @@
+{
+  "tests": [
+    {
+      "name": "\"ab\" should be ACCEPTed",
+      "setup": "",
+      "run": "node grading/grade.mjs solution.autometa DFA \"ab\"",
+      "input": "",
+      "output": "ACCEPT",
+      "comparison": "exact",
+      "timeout": 10,
+      "points": 1
+    },
+    {
+      "name": "\"abb\" should be REJECTed",
+      "setup": "",
+      "run": "node grading/grade.mjs solution.autometa DFA \"abb\"",
+      "input": "",
+      "output": "REJECT",
+      "comparison": "exact",
+      "timeout": 10,
+      "points": 1
+    }
+  ]
+}

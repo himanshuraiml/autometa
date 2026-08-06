@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { Update } from '@tauri-apps/plugin-updater';
 import type { UpdateStatus, UpdateProgress } from '../components/AutoUpdaterModal';
 
-export const CURRENT_APP_VERSION = '0.2.3';
+export const CURRENT_APP_VERSION = '0.2.5';
 
 export function useAutoUpdater() {
   const [isOpen, setIsOpen] = useState(false);

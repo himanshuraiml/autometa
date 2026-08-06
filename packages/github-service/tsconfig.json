@@ -9,8 +9,7 @@
     "skipLibCheck": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
-    "strict": true,
-    "allowJs": true
+    "strict": true
   },
   "include": [
     "src"

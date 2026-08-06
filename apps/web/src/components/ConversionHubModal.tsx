@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { X, Sparkles, Binary, Type, ArrowRight, BookOpen, Minimize2, Wand2 } from 'lucide-react';
+import { X, Sparkles, Binary, Type, ArrowRight, BookOpen, Minimize2 } from 'lucide-react';
 import { Button } from '@autometa/ui';
-import { regexToDfa, pdaToCFG, nfaToDfa, minimizeDFA, parseLanguageToDfa, brzozowskiMinimize, simplifyRegex } from '@autometa/rule-engine';
+import { regexToDfa, pdaToCFG, nfaToDfa, minimizeDFA, parseLanguageToDfa, brzozowskiMinimize } from '@autometa/rule-engine';
 import type { CFGRules } from '@autometa/rule-engine';
 import { toAutomaton, automatonToFlow } from '../utils/flowAutomaton';
 import { useGraphStore } from '../store/useGraphStore';
@@ -21,12 +21,10 @@ export const ConversionHubModal: React.FC<ConversionHubModalProps> = ({
   const { nodes, edges, automatonType, loadGraph } = useGraphStore();
   const { showToast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'regexDfa' | 'stringListDfa' | 'pdaCfg' | 'nfaDfa' | 'brzozowski' | 'simplifyRegex'>('regexDfa');
+  const [activeTab, setActiveTab] = useState<'regexDfa' | 'stringListDfa' | 'pdaCfg' | 'nfaDfa' | 'brzozowski'>('regexDfa');
   const [regexInput, setRegexInput] = useState('(a|b)*abb');
   const [stringListInput, setStringListInput] = useState('cat, car, card');
   const [pdaCfgResult, setPdaCfgResult] = useState<CFGRules | null>(null);
-  const [simplifyInput, setSimplifyInput] = useState('((a*)+)?|a*');
-  const [simplifyResult, setSimplifyResult] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -104,14 +102,6 @@ export const ConversionHubModal: React.FC<ConversionHubModalProps> = ({
     onLoadToGrammarEditor(pdaCfgResult);
   };
 
-  const handleRunSimplifyRegex = () => {
-    try {
-      setSimplifyResult(simplifyRegex(simplifyInput));
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Invalid Regular Expression pattern.', 'error');
-    }
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div className="bg-[#0b0f19] border border-white/10 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
@@ -119,7 +109,10 @@ export const ConversionHubModal: React.FC<ConversionHubModalProps> = ({
         <div className="flex items-center justify-between p-5 border-b border-white/10 bg-black/40">
           <div className="flex items-center gap-2.5">
             <BookOpen className="w-5 h-5 text-[#00e5a3]" />
-            <h2 className="text-base font-extrabold text-white uppercase tracking-wider">Conversions &amp; Transformations Hub</h2>
+            <div>
+              <h2 className="text-base font-extrabold text-white uppercase tracking-wider">Conversions &amp; Transformations Hub</h2>
+              <p className="text-[10px] text-slate-400 font-medium mt-0.5">Instant, one-shot results. For a guided step-by-step walkthrough, use the sidebar&apos;s Algorithms tab instead.</p>
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -132,12 +125,11 @@ export const ConversionHubModal: React.FC<ConversionHubModalProps> = ({
         {/* Tab Navigation */}
         <div className="flex border-b border-white/10 bg-black/20 p-2 gap-2 overflow-x-auto custom-scrollbar">
           {[
-            { id: 'regexDfa', label: 'Regex → DFA', icon: Sparkles },
+            { id: 'regexDfa', label: 'Regex → DFA (Direct)', icon: Sparkles },
             { id: 'stringListDfa', label: 'Language → DFA', icon: Binary },
             { id: 'pdaCfg', label: 'PDA → CFG', icon: Type },
-            { id: 'nfaDfa', label: 'NFA → DFA Direct', icon: ArrowRight },
-            { id: 'brzozowski', label: 'Brzozowski Minimize', icon: Minimize2 },
-            { id: 'simplifyRegex', label: 'Simplify Regex', icon: Wand2 },
+            { id: 'nfaDfa', label: 'NFA → DFA (Direct)', icon: ArrowRight },
+            { id: 'brzozowski', label: 'Brzozowski Minimize (Direct)', icon: Minimize2 },
           ].map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -277,39 +269,6 @@ export const ConversionHubModal: React.FC<ConversionHubModalProps> = ({
             </div>
           )}
 
-          {activeTab === 'simplifyRegex' && (
-            <div className="flex flex-col gap-4">
-              <p className="text-xs text-slate-300">
-                Algebraically simplifies a regular expression — collapsing redundant closures (<code className="text-[#00e5a3]">(a*)* → a*</code>) and duplicate union branches (<code className="text-[#00e5a3]">a|b|a → a|b</code>) — without changing the language it matches.
-              </p>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-400">Regular Expression Pattern:</label>
-                <input
-                  type="text"
-                  value={simplifyInput}
-                  onChange={e => { setSimplifyInput(e.target.value); setSimplifyResult(null); }}
-                  className="bg-black/50 border border-white/10 rounded-lg p-2.5 text-xs text-white font-mono focus:outline-none focus:border-[#00e5a3]"
-                  placeholder="e.g. ((a*)+)?|a*"
-                />
-              </div>
-              <Button onClick={handleRunSimplifyRegex} className="self-start flex items-center gap-2">
-                Simplify <Wand2 className="w-4 h-4" />
-              </Button>
-              {simplifyResult && (
-                <div className="bg-black/50 border border-white/10 p-4 rounded-xl flex flex-col gap-2">
-                  <span className="text-xs font-bold text-[#00e5a3] uppercase tracking-wider">Simplified:</span>
-                  <code className="text-sm text-slate-100 font-mono">{simplifyResult}</code>
-                  <Button
-                    onClick={() => { setRegexInput(simplifyResult); setActiveTab('regexDfa'); }}
-                    variant="secondary"
-                    className="self-start flex items-center gap-2 !text-xs mt-1"
-                  >
-                    Use in Regex → DFA <ArrowRight className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
     </div>

@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autometa Studio — Application Editor Redesign Proposal</title>
+  <!-- Google Fonts: Inter & Fira Code -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* Modern Dark Theme Variables matching Autometa design system */
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-secondary: #111827;
+      --bg-panel: #182234;
+      --bg-card: #1f2937;
+      --bg-card-hover: #2d3748;
+      --bg-input: #0b0f19;
+      --border-color: #2d3748;
+      --border-accent: #4a5568;
+      
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      
+      --color-emerald: #10b981;
+      --color-violet: #8b5cf6;
+      --color-amber: #f59e0b;
+      --color-rose: #ef4444;
+      --color-blue: #3b82f6;
+      --color-cyan: #06b6d4;
+      
+      --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.45);
+      --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
+      --shadow-glow-blue: 0 0 18px rgba(59, 130, 246, 0.35);
+      --shadow-glow-violet: 0 0 18px rgba(139, 92, 246, 0.35);
+      --shadow-glow-emerald: 0 0 18px rgba(16, 185, 129, 0.35);
+      
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-full: 9999px;
+      
+      --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    :root.light-theme {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #f1f5f9;
+      --bg-panel: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f8fafc;
+      --bg-input: #ffffff;
+      --border-color: #cbd5e1;
+      --border-accent: #94a3b8;
+      
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #94a3b8;
+      
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.12);
+      --shadow-glow-blue: 0 0 15px rgba(59, 130, 246, 0.15);
+      --shadow-glow-violet: 0 0 15px rgba(139, 92, 246, 0.15);
+      --shadow-glow-emerald: 0 0 15px rgba(16, 185, 129, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: background-color 0.2s, color 0.2s;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-dim);
+    }
+
+    /* Top Navigation Header */
+    header {
+      height: 56px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 50;
+      flex-shrink: 0;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 34px;
+      height: 34px;
+      background: linear-gradient(135deg, var(--color-blue), var(--color-violet));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 800;
+      font-size: 16px;
+      box-shadow: var(--shadow-glow-blue);
+    }
+
+    .project-name-input {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-main);
+      font-size: 14px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      transition: var(--transition-fast);
+      width: 200px;
+    }
+    .project-name-input:hover {
+      border-color: var(--border-color);
+      background: var(--bg-primary);
+    }
+    .project-name-input:focus {
+      outline: none;
+      border-color: var(--color-blue);
+      background: var(--bg-primary);
+    }
+
+    .automaton-type-badge {
+      font-size: 10px;
+      font-family: 'Fira Code', monospace;
+      font-weight: 700;
+      padding: 3px 10px;
+      background: rgba(59, 130, 246, 0.15);
+      color: var(--color-blue);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: var(--radius-full);
+      cursor: pointer;
+    }
+
+    /* Header Controls */
+    .header-quick-tools {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-primary);
+      padding: 4px 8px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+    }
+
+    .tool-btn {
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition-fast);
+    }
+    .tool-btn:hover {
+      color: var(--text-main);
+      background: var(--bg-secondary);
+    }
+
+    /* Icon-only variant of .btn, used where a label would be redundant next to a tooltip */
+    .btn.icon-only {
+      width: 36px;
+      padding: 0;
+      justify-content: center;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      height: 36px;
+      padding: 0 16px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      background: var(--bg-panel);
+      color: var(--text-main);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: var(--transition-fast);
+    }
+    .btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--text-dim);
+    }
+    .btn-primary {
+      background: var(--color-blue);
+      color: #fff;
+      border-color: var(--color-blue);
+      font-weight: 700;
+    }
+    .btn-primary:hover {
+      background: #2563eb;
+      box-shadow: var(--shadow-glow-blue);
+    }
+
+    /* App Workspace Container */
+    .app-workspace {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ================= LEFT SIDEBAR (PALETTE & FRAGMENTS) ================= */
+    .left-sidebar {
+      width: 280px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+
+    .sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .search-box {
+      position: relative;
+    }
+    .search-box input {
+      width: 100%;
+      height: 36px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 0 12px 0 32px;
+      color: var(--text-main);
+      font-size: 12px;
+      transition: var(--transition-fast);
+    }
+    .search-box input:focus {
+      outline: none;
+      border-color: var(--color-blue);
+    }
+    .search-box svg {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-dim);
+      width: 14px;
+      height: 14px;
+    }
+
+    .sidebar-section {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .sidebar-section-title {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.9px;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .section-badge {
+      font-size: 9px;
+      background: var(--bg-panel);
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-color);
+      font-weight: 600;
+    }
+
+    /* Compact 3-up icon tiles replace the old full-width palette cards —
+       same three actions, a fraction of the vertical space. */
+    .quick-add-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .quick-add-tile {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 12px 6px 10px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      cursor: grab;
+      transition: var(--transition-fast);
+      user-select: none;
+    }
+    .quick-add-tile:hover {
+      border-color: var(--color-blue);
+      background: var(--bg-card-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .state-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Fira Code', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      background: var(--bg-primary);
+      flex-shrink: 0;
+    }
+    .state-avatar.start { border-color: var(--color-blue); color: var(--color-blue); }
+    .state-avatar.accept { border-color: var(--color-emerald); color: var(--color-emerald); }
+
+    .quick-add-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.15;
+    }
+
+    /* Shared list style for collapsible accordion sections in the left sidebar */
+    .accordion-body-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .submachine-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: var(--transition-fast);
+    }
+    .submachine-row:hover {
+      border-color: var(--color-violet);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .submachine-row-name {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-main);
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .submachine-tag {
+      font-size: 9px;
+      font-family: 'Fira Code', monospace;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(139, 92, 246, 0.15);
+      color: var(--color-violet);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .submachine-row-meta {
+      font-size: 10.5px;
+      color: var(--text-dim);
+      flex-shrink: 0;
+      font-family: 'Fira Code', monospace;
+    }
+
+    /* CENTER WORKSPACE & CANVAS */
+    .center-workspace {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-primary);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .canvas-viewport {
+      flex: 1;
+      position: relative;
+      background-image: radial-gradient(var(--border-color) 1.2px, transparent 1.2px);
+      background-size: 24px 24px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Mock Canvas Graph Nodes */
+    .mock-graph-node {
+      position: absolute;
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: var(--bg-panel);
+      border: 2px solid var(--border-accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Fira Code', monospace;
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: var(--transition-fast);
+      box-shadow: var(--shadow-md);
+    }
+    .mock-graph-node.start-state {
+      border-color: var(--color-blue);
+      color: var(--color-blue);
+    }
+    .mock-graph-node.start-state::before {
+      content: '➔';
+      position: absolute;
+      left: -22px;
+      color: var(--color-blue);
+      font-size: 20px;
+    }
+    .mock-graph-node.accept-state {
+      border-color: var(--color-emerald);
+      color: var(--color-emerald);
+    }
+    .mock-graph-node.accept-state::after {
+      content: '';
+      position: absolute;
+      inset: 4px;
+      border-radius: 50%;
+      border: 1.5px solid currentColor;
+    }
+    .mock-graph-node.selected {
+      border-color: var(--color-violet);
+      box-shadow: var(--shadow-glow-violet);
+    }
+
+    .svg-edge-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .canvas-floating-bar {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 4px;
+      display: flex;
+      gap: 4px;
+      box-shadow: var(--shadow-md);
+      z-index: 10;
+    }
+
+    .floating-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 4px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition-fast);
+    }
+    .floating-btn:hover {
+      background: var(--bg-primary);
+      color: var(--text-main);
+    }
+    .floating-btn.active {
+      background: var(--bg-primary);
+      color: var(--color-blue);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Bottom Deck */
+    .bottom-deck {
+      height: 140px;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      padding: 14px 24px;
+      gap: 12px;
+      z-index: 20;
+    }
+
+    .deck-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+    }
+
+    .tape-visualizer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 10px;
+      overflow-x: auto;
+    }
+
+    .tape-cell {
+      min-width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Fira Code', monospace;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .tape-cell.active-head {
+      border-color: var(--color-blue);
+      background: rgba(59, 130, 246, 0.15);
+      color: var(--color-blue);
+      box-shadow: var(--shadow-glow-blue);
+      transform: scale(1.08);
+    }
+
+    /* ================= RIGHT SIDE PANEL (SPACIOUS & EXPANDED) ================= */
+    .right-sidebar {
+      width: 420px; /* EXPANDED WIDTH FOR UN-CRAMPED LAYOUT */
+      background: var(--bg-secondary);
+      border-left: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    /* Compact horizontal segmented control — icon + label sit inline instead of
+       stacking, so the switcher reads as one slim bar rather than four tiles. */
+    .tab-switcher {
+      display: flex;
+      background: var(--bg-primary);
+      padding: 4px;
+      margin: 16px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      gap: 2px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .tab-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 9px 2px;
+      border-radius: 7px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      background: transparent;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: var(--transition-fast);
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .tab-btn svg { flex-shrink: 0; width: 14px; height: 14px; }
+    .tab-btn span { overflow: hidden; text-overflow: ellipsis; }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: var(--bg-secondary);
+    }
+
+    .tab-btn.active {
+      background: var(--text-main);
+      color: var(--bg-primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .sidebar-panel-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 16px 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px; /* INCREASED VERTICAL SPACING */
+    }
+
+    /* Spacious Premium Cards */
+    .panel-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 20px; /* EXPANDED CARD PADDING */
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition-fast);
+    }
+
+    .panel-card:hover {
+      border-color: var(--border-accent);
+    }
+
+    .card-header-title {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.9px;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-title-text {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title-text::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--color-blue);
+    }
+
+    /* Spacious Form Groups */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .form-input {
+      width: 100%;
+      height: 40px; /* TALLER INPUT HEIGHT FOR EASY TAPPING */
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 0 14px;
+      color: var(--text-main);
+      font-size: 13px;
+      font-family: 'Fira Code', monospace;
+      transition: var(--transition-fast);
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--color-blue);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+    }
+
+    /* Spacious Color-Coded State Flag Pills */
+    .state-flags-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .state-flag-btn {
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid var(--border-color);
+      background: var(--bg-input);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: var(--transition-fast);
+    }
+
+    .state-flag-btn.active-blue {
+      background: rgba(59, 130, 246, 0.15);
+      border-color: var(--color-blue);
+      color: var(--color-blue);
+      box-shadow: var(--shadow-glow-blue);
+    }
+
+    .state-flag-btn.active-green {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: var(--color-emerald);
+      color: var(--color-emerald);
+      box-shadow: var(--shadow-glow-emerald);
+    }
+
+    /* Spacious Symbol Palette Pills */
+    .symbol-palette {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    .symbol-pill {
+      font-size: 11px;
+      font-family: 'Fira Code', monospace;
+      padding: 5px 10px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--color-cyan);
+      cursor: pointer;
+      font-weight: 600;
+      transition: var(--transition-fast);
+    }
+    .symbol-pill:hover {
+      border-color: var(--color-cyan);
+      background: rgba(6, 182, 212, 0.12);
+      transform: translateY(-1px);
+    }
+
+    /* Reactive Matrix Table */
+    .matrix-container {
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      font-family: 'Fira Code', monospace;
+    }
+
+    .matrix-table th, .matrix-table td {
+      border: 1px solid var(--border-color);
+      padding: 10px 12px;
+      text-align: center;
+    }
+
+    .matrix-table th {
+      background: var(--bg-secondary);
+      color: var(--text-dim);
+      font-weight: 700;
+    }
+
+    /* Inline status badge — replaces the old always-open Health card; the detail
+       list it summarizes now lives in the Diagnostics accordion row below. */
+    .status-badge {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .status-badge.ok {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--color-emerald);
+    }
+
+    /* Thin rule separating stacked sub-sections inside a merged panel-card */
+    .subsection-divider {
+      height: 1px;
+      background: var(--border-color);
+      margin: 2px 0;
+    }
+
+    /* Dashed "reveal more" chip, used to keep secondary symbols out of the default view */
+    .inline-toggle-chip {
+      font-size: 10.5px;
+      font-family: 'Fira Code', monospace;
+      padding: 5px 10px;
+      background: var(--bg-input);
+      border: 1px dashed var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-dim);
+      cursor: pointer;
+      font-weight: 600;
+      transition: var(--transition-fast);
+    }
+    .inline-toggle-chip:hover {
+      color: var(--text-main);
+      border-color: var(--text-dim);
+    }
+
+    .diag-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-top: 2px;
+    }
+    .diag-item {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Accordion Toggle Header */
+    .accordion-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+    .accordion-header:hover .card-title-text {
+      color: var(--text-main);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="brand-section">
+      <div class="brand-logo">A</div>
+      <div>
+        <input type="text" class="project-name-input" value="Deterministic Automaton" title="Click to rename project">
+      </div>
+      <span class="automaton-type-badge">DFA MODE</span>
+    </div>
+
+    <!-- Header Tools -->
+    <div class="header-quick-tools">
+      <button class="tool-btn" title="Undo (⌘Z)">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 10h10a8 8 0 018 8v2M3 10l6-6m-6 6l6 6"></path></svg>
+      </button>
+      <button class="tool-btn" title="Redo (⌘⇧Z)">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10H11a8 8 0 00-8 8v2m18-10l-6-6m6 6l-6 6"></path></svg>
+      </button>
+      <div style="width: 1px; height: 16px; background: var(--border-color); margin: 0 4px;"></div>
+      <button class="tool-btn" title="Auto Align Layout">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+      </button>
+      <button class="tool-btn" title="Clear Canvas (Reset)">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+      </button>
+    </div>
+
+    <!-- Header Actions -->
+    <div class="header-actions">
+      <button class="btn icon-only" onclick="toggleTheme()" title="Toggle Theme">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+      </button>
+      <button class="btn btn-primary" onclick="alert('Opening Conversion Hub...')">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+        Conversion Hub
+      </button>
+    </div>
+  </header>
+
+  <!-- Main App Workspace -->
+  <div class="app-workspace">
+
+    <!-- ================= LEFT SIDE PANEL ================= -->
+    <aside class="left-sidebar">
+      
+      <!-- Filter Search Box -->
+      <div class="sidebar-header">
+        <div class="search-box">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          <input type="text" placeholder="Filter states & fragments..." onkeyup="filterSidebarItems(this.value)">
+        </div>
+      </div>
+
+      <!-- State Palette: compact 3-up tiles, title doubles as tooltip so no per-item label text is needed -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">
+          <span>Quick Add</span>
+          <span class="section-badge">3 Types</span>
+        </div>
+
+        <div class="quick-add-grid">
+          <div class="quick-add-tile" onclick="addNode('normal')" title="New State — intermediate node">
+            <div class="state-avatar">q</div>
+            <span class="quick-add-label">State</span>
+          </div>
+
+          <div class="quick-add-tile" onclick="addNode('start')" title="Start State — initial entry point">
+            <div class="state-avatar start">q0</div>
+            <span class="quick-add-label">Start</span>
+          </div>
+
+          <div class="quick-add-tile" onclick="addNode('accept')" title="Accept State — final halting state">
+            <div class="state-avatar accept">qf</div>
+            <span class="quick-add-label">Accept</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submachine Fragments: collapsible so the list can grow without pushing Quick Add off-screen -->
+      <div class="sidebar-section">
+        <div class="accordion-header" onclick="toggleAccordion('submachineBody', 'submachineChevron')">
+          <div class="sidebar-section-title" style="flex: 1;">
+            <span>Submachine Library</span>
+          </div>
+          <span class="section-badge">2</span>
+          <span id="submachineChevron" style="font-size: 11px; color: var(--text-dim); margin-left: 8px;">▲</span>
+        </div>
+
+        <div class="accordion-body-list" id="submachineBody">
+          <div class="submachine-row">
+            <span class="submachine-tag">DFA</span>
+            <span class="submachine-row-name">Even '0's Counter</span>
+            <span class="submachine-row-meta">3q · 4δ</span>
+          </div>
+
+          <div class="submachine-row">
+            <span class="submachine-tag">Mealy</span>
+            <span class="submachine-row-name">Binary Inverter</span>
+            <span class="submachine-row-meta">2q · 4δ</span>
+          </div>
+        </div>
+
+        <button class="btn" style="width: 100%; justify-content: center; font-size: 12px; height: 34px; margin-top: 10px;">
+          + Save Canvas as Fragment
+        </button>
+      </div>
+
+    </aside>
+
+    <!-- CENTER WORKSPACE: CANVAS & TAPE -->
+    <main class="center-workspace">
+      
+      <!-- Floating Canvas Bar -->
+      <div class="canvas-floating-bar">
+        <button class="floating-btn active" title="Select / Move Mode">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 15l-2 5L9 9l11 4-5 2z"></path></svg>
+        </button>
+        <button class="floating-btn" title="Add State">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8m-4-4h8"></path></svg>
+        </button>
+        <button class="floating-btn" title="Add Transition">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+        </button>
+      </div>
+
+      <!-- Canvas Area -->
+      <div class="canvas-viewport" id="canvasViewport">
+        <svg class="svg-edge-layer">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="28" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--border-accent)" />
+            </marker>
+          </defs>
+          <path d="M 320 240 Q 420 180 520 240" fill="none" stroke="var(--border-accent)" stroke-width="2" marker-end="url(#arrow)" />
+          <text x="420" y="195" fill="var(--color-cyan)" font-family="Fira Code" font-size="12" font-weight="bold" text-anchor="middle">0</text>
+
+          <path d="M 520 240 Q 420 300 320 240" fill="none" stroke="var(--border-accent)" stroke-width="2" marker-end="url(#arrow)" />
+          <text x="420" y="295" fill="var(--color-cyan)" font-family="Fira Code" font-size="12" font-weight="bold" text-anchor="middle">1</text>
+        </svg>
+
+        <div class="mock-graph-node start-state selected" style="left: 280px; top: 208px;" onclick="selectNode('q0')">
+          q0
+        </div>
+        <div class="mock-graph-node accept-state" style="left: 480px; top: 208px;" onclick="selectNode('q1')">
+          q1
+        </div>
+      </div>
+
+      <!-- Bottom Tape Visualizer Deck -->
+      <div class="bottom-deck">
+        <div class="deck-header">
+          <span>Execution Tape Visualizer</span>
+          <span>Active State: <strong style="color: var(--color-blue);">q0</strong> | Step <strong>2 of 4</strong></span>
+        </div>
+
+        <div class="tape-visualizer">
+          <div class="tape-cell">0</div>
+          <div class="tape-cell active-head">1</div>
+          <div class="tape-cell">1</div>
+          <div class="tape-cell">0</div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ================= RIGHT SIDE PANEL (EXPANDED 420px SPACIOUS INSPECTOR) ================= -->
+    <aside class="right-sidebar">
+
+      <!-- Spacious Segmented Control Tab Switcher -->
+      <div class="tab-switcher">
+        <button class="tab-btn active" id="tabBtnInspector" onclick="setActiveTab('inspector')" title="Inspector">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+          <span>Inspector</span>
+        </button>
+        <button class="tab-btn" id="tabBtnSimulate" onclick="setActiveTab('simulate')" title="Simulate">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span>Simulate</span>
+        </button>
+        <button class="tab-btn" id="tabBtnAlgorithms" onclick="setActiveTab('algorithms')" title="Algorithms">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+          <span>Algorithms</span>
+        </button>
+        <button class="tab-btn" id="tabBtnAi" onclick="setActiveTab('ai')" title="AI Coach">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+          <span>AI Coach</span>
+        </button>
+      </div>
+
+      <!-- Spacious Side Scroll Panel -->
+      <div class="sidebar-panel-scroll">
+
+        <!-- ================= TAB 1: INSPECTOR ================= -->
+        <div id="panelInspector" class="flex-col gap-5" style="display: flex;">
+          
+          <!-- Element Inspector Hero Card: the one thing being edited, so it stays
+               full-size; automaton health is now a glanceable badge here rather than
+               its own permanent card further down the panel. -->
+          <div class="panel-card">
+            <div class="card-header-title">
+              <span class="card-title-text">Selected Element</span>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="status-badge ok" title="No structural issues detected — see Diagnostics below">✓ Valid</span>
+                <span style="color: var(--color-blue); font-family: 'Fira Code', monospace; font-weight: 700; background: rgba(59,130,246,0.15); padding: 2px 8px; border-radius: 4px; font-size: 11px;">NODE: q0</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                <span>State Label / Identifier</span>
+                <span style="font-size: 11px; color: var(--text-dim);">Internal ID: q0</span>
+              </label>
+              <input type="text" class="form-input" value="q0" id="nodeLabelInput" oninput="updateNodeLabelVal(this.value)">
+            </div>
+
+            <div class="form-group">
+              <span class="form-label">State Attributes & Flags</span>
+              <div class="state-flags-grid">
+                <button class="state-flag-btn active-blue" id="btnStartState" onclick="toggleFlag('start')">
+                  <span>Start State</span>
+                  <span style="font-size: 12px;">●</span>
+                </button>
+                <button class="state-flag-btn" id="btnAcceptState" onclick="toggleFlag('accept')">
+                  <span>Accept State</span>
+                  <span style="font-size: 12px;">○</span>
+                </button>
+              </div>
+            </div>
+
+            <button class="btn" style="background: rgba(239,68,68,0.12); color: var(--color-rose); border-color: rgba(239,68,68,0.3); justify-content: center; font-weight: 700; height: 38px; margin-top: 4px;">
+              Delete State (q0)
+            </button>
+          </div>
+
+          <!-- Transitions Card: symbols, edge routing, the matrix and diagnostics
+               now live in one container as expandable rows instead of three
+               separate boxed cards stacked underneath each other. -->
+          <div class="panel-card">
+            <div class="card-header-title">
+              <span class="card-title-text">Transitions</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                <span>Alphabet Symbols</span>
+                <span style="font-size: 11px; color: var(--text-dim);">Comma separated</span>
+              </label>
+              <input type="text" class="form-input" value="0, 1" id="alphabetInput" placeholder="e.g. 0, 1 or a, Z -> A Z">
+
+              <div class="symbol-palette" id="commonSymbols">
+                <span class="symbol-pill" onclick="insertSymbol('ε')" title="epsilon">ε</span>
+                <span class="symbol-pill" onclick="insertSymbol('Σ')" title="sigma">Σ</span>
+                <span class="symbol-pill" onclick="insertSymbol('δ')" title="delta">δ</span>
+                <span class="inline-toggle-chip" id="moreSymbolsBtn" onclick="toggleMoreSymbols()">+3 more</span>
+              </div>
+              <div class="symbol-palette" id="moreSymbols" style="display: none; margin-top: 6px;">
+                <span class="symbol-pill" onclick="insertSymbol('λ')" title="lambda">λ</span>
+                <span class="symbol-pill" onclick="insertSymbol('⊔')" title="blank">⊔</span>
+                <span class="symbol-pill" onclick="insertSymbol('⊢')" title="turnstile">⊢</span>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 4px;">
+              <label class="form-label">
+                <span>Edge Separation Curve</span>
+                <span style="font-family: 'Fira Code', monospace; color: var(--color-blue); font-weight: 700;" id="curveVal">24px</span>
+              </label>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 10px; color: var(--text-dim);">-80px</span>
+                <input type="range" min="-80" max="80" value="24" class="form-input" style="height: 20px; padding: 0; flex: 1; cursor: pointer;" oninput="document.getElementById('curveVal').innerText = this.value + 'px'">
+                <span style="font-size: 10px; color: var(--text-dim);">+80px</span>
+              </div>
+            </div>
+
+            <div class="subsection-divider"></div>
+
+            <div class="accordion-header" onclick="toggleAccordion('matrixBody', 'matrixChevron')">
+              <span class="card-title-text" style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-dim);">Transition Matrix (δ)</span>
+              <span id="matrixChevron" style="font-size: 12px; color: var(--text-dim);">▲</span>
+            </div>
+            <div class="matrix-container" id="matrixBody">
+              <table class="matrix-table">
+                <thead>
+                  <tr><th>State</th><th>0</th><th>1</th></tr>
+                </thead>
+                <tbody>
+                  <tr style="background: rgba(59,130,246,0.08);">
+                    <td style="color: var(--color-blue); font-weight: 700;">➔ q0</td>
+                    <td>q1</td>
+                    <td>q0</td>
+                  </tr>
+                  <tr>
+                    <td style="color: var(--color-emerald); font-weight: 700;">⊚ q1</td>
+                    <td>q0</td>
+                    <td>q1</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="subsection-divider"></div>
+
+            <div class="accordion-header" onclick="toggleAccordion('diagBody', 'diagChevron')">
+              <span class="card-title-text" style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-dim);">Diagnostics</span>
+              <span id="diagChevron" style="font-size: 12px; color: var(--text-dim);">▼</span>
+            </div>
+            <div class="diag-list" id="diagBody" style="display: none;">
+              <div class="diag-item"><span style="color: var(--color-emerald);">✓</span> Deterministic transitions for all alphabet symbols</div>
+              <div class="diag-item"><span style="color: var(--color-emerald);">✓</span> All states reachable from Start State q0</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ================= TAB 2: SIMULATE ================= -->
+        <div id="panelSimulate" class="flex-col gap-5" style="display: none;">
+          <div class="panel-card">
+            <div class="card-header-title">
+              <span class="card-title-text">Execution Controls</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Input String</label>
+              <input type="text" class="form-input" value="0110" placeholder="e.g. 0110">
+            </div>
+
+            <!-- Step Playback Control Bar -->
+            <div style="display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--bg-input); padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+              <button class="btn" style="height: 34px; padding: 0 10px;" title="First Step">⏮️</button>
+              <button class="btn" style="height: 34px; padding: 0 10px;" title="Step Back">◀️</button>
+              <button class="btn btn-primary" style="height: 34px; padding: 0 16px;" title="Run / Pause">▶️ Play</button>
+              <button class="btn" style="height: 34px; padding: 0 10px;" title="Step Forward">▶️</button>
+              <button class="btn" style="height: 34px; padding: 0 10px;" title="Last Step">⏭️</button>
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <div class="card-header-title">
+              <span class="card-title-text">Automated Test Suites</span>
+            </div>
+            <div style="font-size: 12px; display: flex; flex-direction: column; gap: 10px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-input); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                <span>0110 <span style="color: var(--text-dim);">(Accept)</span></span>
+                <span style="color: var(--color-emerald); font-weight: 700; font-size: 11px; background: rgba(16,185,129,0.15); padding: 3px 8px; border-radius: 4px;">PASS</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-input); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                <span>111 <span style="color: var(--text-dim);">(Reject)</span></span>
+                <span style="color: var(--color-emerald); font-weight: 700; font-size: 11px; background: rgba(16,185,129,0.15); padding: 3px 8px; border-radius: 4px;">PASS</span>
+              </div>
+            </div>
+            <button class="btn" style="justify-content: center; font-size: 12px; margin-top: 4px; height: 38px;">
+              Open Batch Test Runner
+            </button>
+          </div>
+        </div>
+
+        <!-- ================= TAB 3: ALGORITHMS ================= -->
+        <div id="panelAlgorithms" class="flex-col gap-5" style="display: none;">
+          <div class="panel-card">
+            <div class="card-header-title">
+              <span class="card-title-text">Regular Expression Tools</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Regex Pattern</label>
+              <input type="text" class="form-input" value="(0|1)*10">
+            </div>
+            <button class="btn btn-primary" style="justify-content: center; height: 38px;">
+              Build NFA (Thompson's Method)
+            </button>
+          </div>
+
+          <div class="panel-card">
+            <div class="card-header-title">
+              <span class="card-title-text">Automata Transformations</span>
+            </div>
+            <button class="btn" style="justify-content: center; height: 38px;">
+              Minimize DFA (Hopcroft Algorithm)
+            </button>
+            <button class="btn" style="justify-content: center; height: 38px;">
+              Convert DFA to Regex
+            </button>
+            <button class="btn" style="justify-content: center; height: 38px;">
+              Pumping Lemma Proof Game
+            </button>
+          </div>
+        </div>
+
+        <!-- ================= TAB 4: AI COACH ================= -->
+        <div id="panelAi" class="flex-col gap-5" style="display: none;">
+          <div class="panel-card">
+            <div class="card-header-title">
+              <span class="card-title-text">AI Automated Grading</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Target Formal Language Specification</label>
+              <textarea class="form-input" style="height: 80px; padding: 10px;" placeholder="e.g. Accepts binary strings containing an even number of '0's."></textarea>
+            </div>
+            <button class="btn btn-primary" style="justify-content: center; height: 38px;">
+              Grade Canvas with AI
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Interactive Script -->
+  <script>
+    function setActiveTab(tabKey) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('[id^="panel"]').forEach(p => p.style.display = 'none');
+
+      if (tabKey === 'inspector') {
+        document.getElementById('tabBtnInspector').classList.add('active');
+        document.getElementById('panelInspector').style.display = 'flex';
+      } else if (tabKey === 'simulate') {
+        document.getElementById('tabBtnSimulate').classList.add('active');
+        document.getElementById('panelSimulate').style.display = 'flex';
+      } else if (tabKey === 'algorithms') {
+        document.getElementById('tabBtnAlgorithms').classList.add('active');
+        document.getElementById('panelAlgorithms').style.display = 'flex';
+      } else if (tabKey === 'ai') {
+        document.getElementById('tabBtnAi').classList.add('active');
+        document.getElementById('panelAi').style.display = 'flex';
+      }
+    }
+
+    function toggleTheme() {
+      document.documentElement.classList.toggle('light-theme');
+    }
+
+    function toggleFlag(flag) {
+      if (flag === 'start') {
+        document.getElementById('btnStartState').classList.toggle('active-blue');
+      } else if (flag === 'accept') {
+        document.getElementById('btnAcceptState').classList.toggle('active-green');
+      }
+    }
+
+    function toggleAccordion(bodyId, chevronId) {
+      const el = document.getElementById(bodyId);
+      const chevron = chevronId ? document.getElementById(chevronId) : null;
+      const isHidden = el.style.display === 'none';
+      // Clear the inline override rather than forcing 'block' — bodies like
+      // .accordion-body-list rely on their class's flex display for row gaps.
+      el.style.display = isHidden ? '' : 'none';
+      if (chevron) chevron.innerText = isHidden ? '▲' : '▼';
+    }
+
+    function toggleMoreSymbols() {
+      const el = document.getElementById('moreSymbols');
+      const btn = document.getElementById('moreSymbolsBtn');
+      const isHidden = el.style.display === 'none';
+      el.style.display = isHidden ? 'flex' : 'none';
+      btn.innerText = isHidden ? 'Show less' : '+3 more';
+    }
+
+    function selectNode(nodeId) {
+      document.getElementById('nodeLabelInput').value = nodeId;
+      setActiveTab('inspector');
+    }
+
+    function insertSymbol(sym) {
+      const input = document.getElementById('alphabetInput');
+      if (input) input.value += ', ' + sym;
+    }
+
+    function filterSidebarItems(q) {
+      const val = q.toLowerCase();
+      document.querySelectorAll('.quick-add-tile, .submachine-row').forEach(card => {
+        card.style.display = card.innerText.toLowerCase().includes(val) ? 'flex' : 'none';
+      });
+    }
+  </script>
+</body>
+</html>

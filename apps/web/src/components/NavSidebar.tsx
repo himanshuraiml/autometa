@@ -1,7 +1,7 @@
-import { Home, Tv, Blocks, BookOpen, GraduationCap, Library, HelpCircle, Settings, Plus, GitCompare } from 'lucide-react';
+import { Home, Tv, Blocks, BookOpen, GraduationCap, Library, HelpCircle, Settings, Plus, GitCompare, Github } from 'lucide-react';
 import logoImg from '../assets/logo.jpg';
 
-export type AppView = 'dashboard' | 'graph' | 'grammars' | 'lessons' | 'practice' | 'library' | 'operations';
+export type AppView = 'dashboard' | 'graph' | 'grammars' | 'lessons' | 'practice' | 'assignments' | 'library' | 'operations';
 
 interface NavSidebarProps {
   activeView: AppView;
@@ -18,6 +18,7 @@ const NAV_ITEMS: { id: AppView; name: string; icon: React.ReactNode }[] = [
   { id: 'operations', name: 'Compare & Combine', icon: <GitCompare className="w-4 h-4" /> },
   { id: 'lessons', name: 'Lesson Builder', icon: <BookOpen className="w-4 h-4" /> },
   { id: 'practice', name: 'Practice', icon: <GraduationCap className="w-4 h-4" /> },
+  { id: 'assignments', name: 'Assignments', icon: <Github className="w-4 h-4" /> },
   { id: 'library', name: 'Library', icon: <Library className="w-4 h-4" /> },
 ];
 

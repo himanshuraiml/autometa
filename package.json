@@ -17,6 +17,7 @@
   "scripts": {
     "test": "vitest run",
     "desktop": "bun --cwd apps/desktop dev",
-    "desktop:build": "bun --cwd apps/desktop run build"
+    "desktop:build": "bun --cwd apps/desktop run build",
+    "build:grading-template": "bun build packages/simulation-engine/src/index.ts --target=node --format=esm --banner=\"// AUTO-GENERATED from packages/simulation-engine/src/index.ts — do not edit; regenerate via 'bun run build:grading-template'.\" --outfile=docs/classroom-template/grading/simulation-engine.generated.mjs"
   }
 }

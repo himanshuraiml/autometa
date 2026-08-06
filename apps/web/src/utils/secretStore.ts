@@ -17,6 +17,7 @@ export const SECRET_NAMES = [
   'autometa_openai_key',
   'autometa_groq_key',
   'autometa_custom_key',
+  'autometa_github_token',
 ] as const;
 
 export type SecretName = (typeof SECRET_NAMES)[number];

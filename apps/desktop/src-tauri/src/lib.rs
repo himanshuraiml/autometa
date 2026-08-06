@@ -20,11 +20,12 @@ fn get_backend_token(token: tauri::State<'_, BackendToken>) -> String {
 /// Only the fixed set of names the frontend owns is allowed, keeping the
 /// webview from reading arbitrary keychain entries through this command.
 const KEYCHAIN_SERVICE: &str = "com.autometa.studio";
-const ALLOWED_SECRET_NAMES: [&str; 4] = [
+const ALLOWED_SECRET_NAMES: [&str; 5] = [
     "autometa_gemini_key",
     "autometa_openai_key",
     "autometa_groq_key",
     "autometa_custom_key",
+    "autometa_github_token",
 ];
 
 fn keychain_entry(name: &str) -> Result<keyring::Entry, String> {

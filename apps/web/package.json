@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@autometa/animation-engine": "workspace:*",
+    "@autometa/github-service": "workspace:*",
     "@autometa/graph-engine": "workspace:*",
     "@autometa/rule-engine": "workspace:*",
     "@autometa/simulation-engine": "workspace:*",

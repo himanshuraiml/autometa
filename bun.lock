@@ -30,6 +30,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@autometa/animation-engine": "workspace:*",
+        "@autometa/github-service": "workspace:*",
         "@autometa/graph-engine": "workspace:*",
         "@autometa/rule-engine": "workspace:*",
         "@autometa/simulation-engine": "workspace:*",
@@ -65,6 +66,14 @@
       "version": "0.1.0",
       "dependencies": {
         "@autometa/timeline-engine": "workspace:*",
+      },
+    },
+    "packages/github-service": {
+      "name": "@autometa/github-service",
+      "version": "0.1.0",
+      "dependencies": {
+        "@autometa/simulation-engine": "workspace:*",
+        "yaml": "^2.6.0",
       },
     },
     "packages/graph-engine": {
@@ -108,6 +117,8 @@
     "@asamuzakjp/css-color": ["@asamuzakjp/css-color@3.2.0", "", { "dependencies": { "@csstools/css-calc": "^2.1.3", "@csstools/css-color-parser": "^3.0.9", "@csstools/css-parser-algorithms": "^3.0.4", "@csstools/css-tokenizer": "^3.0.3", "lru-cache": "^10.4.3" } }, "sha512-K1A6z8tS3XsmCMM86xoWdn7Fkdn9m6RSVtocUrJYIwZnFVkng/PvkEoWtOWmP+Scc6saYWHWZYbndEEXxl24jw=="],
 
     "@autometa/animation-engine": ["@autometa/animation-engine@workspace:packages/animation-engine"],
+
+    "@autometa/github-service": ["@autometa/github-service@workspace:packages/github-service"],
 
     "@autometa/graph-engine": ["@autometa/graph-engine@workspace:packages/graph-engine"],
 
@@ -798,6 +809,8 @@
     "xml-name-validator": ["xml-name-validator@5.0.0", "", {}, "sha512-EvGK8EJ3DhaHfbRlETOWAS5pO9MZITeauHKJyb8wyajUfQUenkIg2MvLDTZ4T/TgIcm3HU0TFBgWWboAZ30UHg=="],
 
     "xmlchars": ["xmlchars@2.2.0", "", {}, "sha512-JZnDKK8B0RCDw84FNdDAIpZK+JuJw+s7Lz8nksI7SIuU3UXJJslUthsi+uWBUYOwPFwW7W7PRLRfUKpxjtjFCw=="],
+
+    "yaml": ["yaml@2.9.0", "", { "bin": { "yaml": "bin.mjs" } }, "sha512-2AvhNX3mb8zd6Zy7INTtSpl1F15HW6Wnqj0srWlkKLcpYl/gMIMJiyuGq2KeI2YFxUPjdlB+3Lc10seMLtL4cA=="],
 
     "zustand": ["zustand@5.0.14", "", { "peerDependencies": { "@types/react": ">=18.0.0", "immer": ">=9.0.6", "react": ">=18.0.0", "use-sync-external-store": ">=1.2.0" }, "optionalPeers": ["@types/react", "immer", "react", "use-sync-external-store"] }, "sha512-/8tAspM5LMPr28b3fwLYrtdj77ECpfZviaP75CMTnwO8ISyaE4GDIG/9rDDYq/cH9D2Xw2A2RXglLInmVBQB/g=="],
 

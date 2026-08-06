@@ -39,6 +39,9 @@ import { LayoutTools } from './components/LayoutTools';
 import { PracticePanel } from './components/PracticePanel';
 import { CanvasQuickActionBar } from './components/CanvasQuickActionBar';
 import { ConversionHubModal } from './components/ConversionHubModal';
+import { GitHubAuthModal } from './components/GitHubAuthModal';
+import { TaskWorkspaceHeader } from './components/TaskWorkspaceHeader';
+import { PreSubmissionModal } from './components/PreSubmissionModal';
 import { useSimulationPlayback } from './hooks/useSimulationPlayback';
 import { useMediaExport } from './hooks/useMediaExport';
 import { useProjectPersistence } from './hooks/useProjectPersistence';
@@ -49,6 +52,9 @@ import { useExercises } from './hooks/useExercises';
 import { useLessonPaths } from './hooks/useLessonPaths';
 import { usePractice } from './hooks/usePractice';
 import { useProjectLibrary } from './hooks/useProjectLibrary';
+import { useGithubAuth } from './hooks/useGithubAuth';
+import { useAssignments } from './hooks/useAssignments';
+import type { TaskAssignment } from '@autometa/github-service';
 import { LESSON_HISTORY_KEY, LESSON_HISTORY_LIMIT, type SavedLesson } from './utils/lessonHistory';
 import { PREDEFINED_TEMPLATES } from './data/templates';
 import { toAutomaton, automatonToFlow } from './utils/flowAutomaton';
@@ -63,6 +69,7 @@ const DashboardView = lazy(() => import('./components/DashboardView').then(m => 
 const PracticeHub = lazy(() => import('./components/PracticeHub').then(m => ({ default: m.PracticeHub })));
 const ProjectLibrary = lazy(() => import('./components/ProjectLibrary').then(m => ({ default: m.ProjectLibrary })));
 const MachineOperations = lazy(() => import('./components/MachineOperations').then(m => ({ default: m.MachineOperations })));
+const AssignmentExplorer = lazy(() => import('./components/AssignmentExplorer').then(m => ({ default: m.AssignmentExplorer })));
 
 const GRAPH_BASED_EXERCISE_TYPES = new Set(['DFA', 'NFA', 'PDA', 'TM']);
 
@@ -109,6 +116,9 @@ function Editor() {
   const [settingsInitialTab, setSettingsInitialTab] = useState<SettingsTab>('ai');
   const [isHelpCenterOpen, setIsHelpCenterOpen] = useState(false);
   const [isConversionHubOpen, setIsConversionHubOpen] = useState(false);
+  const [isGithubAuthOpen, setIsGithubAuthOpen] = useState(false);
+  const [isPreSubmissionOpen, setIsPreSubmissionOpen] = useState(false);
+  const [activeAssignment, setActiveAssignment] = useState<TaskAssignment | null>(null);
   const autoUpdater = useAutoUpdater();
 
   const [showEditorOnboarding, setShowEditorOnboarding] = useState(false);
@@ -191,6 +201,15 @@ function Editor() {
     setActiveView('graph');
   };
 
+  const handleOpenAssignmentInEditor = (assignment: TaskAssignment) => {
+    setActiveAssignment(assignment);
+    if (assignment.starterAutomaton) {
+      handleLoadAutomatonFromTool(assignment.starterAutomaton, assignment.frontmatter.type);
+    } else {
+      setActiveView('graph');
+    }
+  };
+
   const grading = useGrading({ automatonType, getAutomatonData });
 
   // Phase 5 — practice mode, exercise generation, and lesson paths.
@@ -199,6 +218,8 @@ function Editor() {
   const lessonPathsHook = useLessonPaths();
   const practice = usePractice({ profileId: profile.activeProfileId });
   const library = useProjectLibrary();
+  const githubAuth = useGithubAuth(import.meta.env.VITE_GITHUB_CLIENT_ID as string | undefined);
+  const assignmentsHook = useAssignments(githubAuth.token);
 
   const handleSaveVersion = async () => {
     if (persistence.currentProjectId === null) {
@@ -508,6 +529,14 @@ function Editor() {
           />
         )}
 
+        {activeView === 'graph' && activeAssignment && (
+          <TaskWorkspaceHeader
+            assignment={activeAssignment}
+            onSubmit={() => setIsPreSubmissionOpen(true)}
+            onExit={() => setActiveAssignment(null)}
+          />
+        )}
+
         {/* Main Workspace Layout */}
         <div className="flex-1 flex relative overflow-hidden bg-[var(--bg-primary)]">
         {activeView === 'dashboard' ? (
@@ -596,6 +625,15 @@ function Editor() {
               setActiveView('graph');
             }}
           />
+          </Suspense>
+        ) : activeView === 'assignments' ? (
+          <Suspense fallback={viewLoadingFallback}>
+            <AssignmentExplorer
+              auth={githubAuth}
+              assignments={assignmentsHook}
+              onOpenInEditor={handleOpenAssignmentInEditor}
+              onConnectGithub={() => setIsGithubAuthOpen(true)}
+            />
           </Suspense>
         ) : (
           <>
@@ -757,6 +795,7 @@ function Editor() {
         theme={theme}
         onChangeTheme={setTheme}
         onCheckForUpdates={autoUpdater.checkForUpdates}
+        currentVersion={autoUpdater.currentVersion}
       />
 
       <AutoUpdaterModal
@@ -781,6 +820,25 @@ function Editor() {
         isOpen={isConversionHubOpen}
         onClose={() => setIsConversionHubOpen(false)}
         onLoadToGrammarEditor={handleLoadGrammarFromHub}
+      />
+
+      <GitHubAuthModal
+        isOpen={isGithubAuthOpen}
+        onClose={() => setIsGithubAuthOpen(false)}
+        auth={githubAuth}
+      />
+
+      <PreSubmissionModal
+        isOpen={isPreSubmissionOpen}
+        onClose={() => setIsPreSubmissionOpen(false)}
+        assignment={activeAssignment}
+        getAutomatonData={getAutomatonData}
+        automatonType={automatonType}
+        onSubmit={async () => {
+          if (!activeAssignment) return;
+          const result = await assignmentsHook.submitSolution(activeAssignment, getAutomatonData());
+          showToast(`Submitted! Commit: ${result.sha.slice(0, 7)}`, 'success');
+        }}
       />
 
       <HelpCenterModal

@@ -6,6 +6,7 @@ import { LLM_STORAGE_KEYS, type LLMProvider } from '../utils/llmConfig';
 import { getSecret, setSecret } from '../utils/secretStore';
 import { EDITOR_SHORTCUT_GROUPS } from '../utils/shortcuts';
 import { useToast } from './ToastProvider';
+import { CURRENT_APP_VERSION } from '../hooks/useAutoUpdater';
 
 export type SettingsTab = 'general' | 'ai' | 'submachines' | 'shortcuts';
 
@@ -16,6 +17,7 @@ interface SettingsModalProps {
   theme: 'light' | 'dark';
   onChangeTheme: (theme: 'light' | 'dark') => void;
   onCheckForUpdates?: () => void;
+  currentVersion?: string;
 }
 
 const TABS: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
@@ -41,7 +43,14 @@ const TextField = ({
   />
 );
 
-export const SettingsModal = ({ isOpen, onClose, initialTab = 'general', onChangeTheme, onCheckForUpdates }: SettingsModalProps) => {
+export const SettingsModal = ({
+  isOpen,
+  onClose,
+  initialTab = 'general',
+  onChangeTheme,
+  onCheckForUpdates,
+  currentVersion = CURRENT_APP_VERSION,
+}: SettingsModalProps) => {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
 
@@ -171,7 +180,7 @@ export const SettingsModal = ({ isOpen, onClose, initialTab = 'general', onChang
                   <div className="flex items-center justify-between p-3 bg-black/60 border border-white/10 rounded-lg">
                     <div>
                       <div className="text-[#00e5a3] font-bold text-sm">Autometa Studio</div>
-                      <div className="text-xs text-gray-400 font-mono">Current Version: v0.2.3</div>
+                      <div className="text-xs text-gray-400 font-mono">Current Version: v{currentVersion}</div>
                     </div>
                     {onCheckForUpdates && (
                       <Button
